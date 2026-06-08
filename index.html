@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Price Is Right</title>
+
+<!--
+  ============================================================
+  THE PRICE IS RIGHT
+  A gentle, no-fail guessing game for people living with
+  dementia. Designed for tablets and touch screens in care
+  settings.
+
+  HOW TO PLAY:
+    1. Choose a level on the first screen.
+    2. A familiar product and a price are shown.
+    3. The player taps MORE or LESS to guess whether the real
+       price is higher or lower than the price shown.
+    4. The real price is revealed with warm feedback.
+    5. Tap NEXT to move on at their own pace.
+
+  THREE LEVELS (for different stages):
+    🌼 Gentle  — no wrong answers; every guess is celebrated.
+    ⭐ Medium  — prices are closer; correct answers earn prizes.
+    🔥 Sharper — prices very close; build a streak of correct
+                 answers. A miss only resets the streak — it is
+                 always kind, never a "game over".
+
+  No timers. No scolding. The harder levels add a gentle,
+  encouraging challenge — never a punishing one.
+  ============================================================
+-->
+
+<!--
+  ============================================================
+  CAREGIVER: EDIT THE PRODUCTS HERE
+  ============================================================
+  This is the ONLY part you need to change to swap products.
+
+  Each product has these parts:
+     emoji : a picture (an emoji). You can paste any emoji.
+     en    : the product name in English.
+     fr    : the product name in French.
+     price : the REAL price of the item (a number).
+
+  The game shows a "guess price" near the real price and asks
+  whether the real price is MORE or LESS. How CLOSE that guess
+  price is depends on the difficulty level the player picks on
+  the first screen — so you only need to set the real price.
+
+  Prices are just for fun — make them whatever feels familiar
+  to the people you care for.
+  ============================================================
+-->
+<script>
+const PRODUCTS = [
+  { emoji: "🍞", en: "Loaf of Bread",      fr: "Pain",                         price: 1.50 },
+  { emoji: "🥛", en: "Bottle of Milk",     fr: "Bouteille de lait",            price: 1.30 },
+  { emoji: "🥚", en: "Dozen Eggs",         fr: "Douzaine d'œufs",              price: 2.20 },
+  { emoji: "🧈", en: "Tub of Butter",      fr: "Beurre",                       price: 2.00 },
+  { emoji: "🧀", en: "Block of Cheese",    fr: "Bloc de fromage",              price: 3.50 },
+  { emoji: "🍌", en: "Bunch of Bananas",   fr: "Régime de bananes",            price: 1.00 },
+  { emoji: "🍎", en: "Bag of Apples",      fr: "Sac de pommes",                price: 2.50 },
+  { emoji: "🥔", en: "Bag of Potatoes",    fr: "Sac de pommes de terre",       price: 2.00 },
+  { emoji: "🍅", en: "Tin of Tomatoes",    fr: "Boîte de tomates",             price: 0.80 },
+  { emoji: "🫘", en: "Tin of Baked Beans", fr: "Boîte de fèves au lard",       price: 0.90 },
+  { emoji: "🍯", en: "Jar of Honey",       fr: "Pot de miel",                  price: 3.00 },
+  { emoji: "☕", en: "Jar of Coffee",      fr: "Pot de café",                  price: 4.50 },
+  { emoji: "🍵", en: "Box of Tea Bags",    fr: "Boîte de sachets de thé",      price: 2.50 },
+  { emoji: "🍫", en: "Bar of Chocolate",   fr: "Tablette de chocolat",         price: 1.20 },
+  { emoji: "🍬", en: "Bag of Sweets",      fr: "Sac de bonbons",               price: 1.50 },
+  { emoji: "🍪", en: "Packet of Biscuits", fr: "Paquet de biscuits",           price: 1.10 },
+  { emoji: "🥤", en: "Bottle of Soda",     fr: "Bouteille de boisson gazeuse", price: 1.30 },
+  { emoji: "🧃", en: "Carton of Juice",    fr: "Carton de jus",                price: 1.60 },
+  { emoji: "🍊", en: "Bag of Oranges",     fr: "Sac d'oranges",                price: 2.20 },
+  { emoji: "🥕", en: "Bag of Carrots",     fr: "Sac de carottes",              price: 0.70 },
+  { emoji: "🧼", en: "Bar of Soap",        fr: "Savon",                        price: 1.00 },
+  { emoji: "🧻", en: "Toilet Roll Pack",   fr: "Paquet de papier toilette",    price: 3.50 },
+  { emoji: "🪥", en: "Toothbrush",         fr: "Brosse à dents",               price: 1.50 },
+  { emoji: "🧂", en: "Box of Salt",        fr: "Boîte de sel",                 price: 0.60 },
+  { emoji: "🍚", en: "Bag of Rice",        fr: "Sac de riz",                   price: 2.00 },
+  { emoji: "🍝", en: "Packet of Pasta",    fr: "Paquet de pâtes",              price: 1.00 },
+  { emoji: "🥓", en: "Pack of Bacon",      fr: "Paquet de bacon",              price: 3.00 },
+  { emoji: "🍦", en: "Tub of Ice Cream",   fr: "Pot de crème glacée",          price: 2.80 },
+  { emoji: "🥫", en: "Tin of Soup",        fr: "Boîte de soupe",               price: 0.90 },
+  { emoji: "🍮", en: "Pot of Custard",     fr: "Pot de crème anglaise",        price: 1.20 }
+];
+
+// ---------- Wording in both languages (caregivers can tweak too) ----------
+const TEXT = {
+  en: {
+    langButton: "Français",          // tap to switch TO French
+    title:      "The Price Is Right",
+    chooseLevel:"Choose a level",
+    lvlEasy:        "🌼 Gentle",
+    lvlEasyDesc:    "Just for fun — no wrong answers",
+    lvlMedium:      "⭐ Medium",
+    lvlMediumDesc:  "A little challenge",
+    lvlHard:        "🔥 Sharper",
+    lvlHardDesc:    "Prices are close — build a streak!",
+    rounds:     "Rounds played: ",
+    prompt:     "Is the real price...",
+    more:       "MORE ⬆️",
+    less:       "LESS ⬇️",
+    next:       "NEXT ➡️",
+    gotIt:      "You got it! The real price was",
+    closeGuess: "Great guess! The real price was",
+    cheers: ["Well done!", "Great guess!", "Lovely!", "Wonderful!",
+             "Nice one!", "Brilliant!", "Good job!", "Fantastic!"],
+    rightCheer: "That's right!",     // shown when correct (Medium/Sharper)
+    wrongCheer: "Good try!",         // gentle, never scolding
+    rightText:  "Correct! The real price was",
+    wrongText:  "The real price was",
+    prizeCheer:    "Congratulations!",
+    prizeIntro:    "You've won...",
+    prizeContinue: "KEEP PLAYING ➡️"
+  },
+  fr: {
+    langButton: "English",           // tap to switch TO English
+    title:      "Le Juste Prix",
+    chooseLevel:"Choisissez un niveau",
+    lvlEasy:        "🌼 Tout en douceur",
+    lvlEasyDesc:    "Pour le plaisir — aucune mauvaise réponse",
+    lvlMedium:      "⭐ Moyen",
+    lvlMediumDesc:  "Un petit défi",
+    lvlHard:        "🔥 Plus pointu",
+    lvlHardDesc:    "Les prix sont proches — enchaînez les bonnes réponses !",
+    rounds:     "Parties jouées : ",
+    prompt:     "Le vrai prix est-il...",
+    more:       "PLUS ⬆️",
+    less:       "MOINS ⬇️",
+    next:       "SUIVANT ➡️",
+    gotIt:      "Bravo ! Le vrai prix était",
+    closeGuess: "Bien deviné ! Le vrai prix était",
+    cheers: ["Bravo !", "Bien joué !", "Magnifique !", "Merveilleux !",
+             "Excellent !", "Superbe !", "Parfait !", "Fantastique !"],
+    rightCheer: "C'est exact !",
+    wrongCheer: "Bel essai !",
+    rightText:  "Correct ! Le vrai prix était",
+    wrongText:  "Le vrai prix était",
+    prizeCheer:    "Félicitations !",
+    prizeIntro:    "Vous avez gagné...",
+    prizeContinue: "CONTINUER ➡️"
+  }
+};
+
+// Currency symbol shown before every price. Change to "$", "€", etc.
+const CURRENCY = "$"; // Canadian dollars
+
+// ============================================================
+//  CAREGIVER: PRIZES YOU CAN WIN
+// ============================================================
+//  As the player keeps going, they reach bigger and bigger
+//  prizes — ending in a brand-new car! These are won just by
+//  playing, never lost. Edit the list or the emojis as you like.
+//  Order them small-to-big for the nicest effect.
+// ============================================================
+const PRIZES = [
+  { emoji: "🧸", en: "Teddy Bear",        fr: "Ours en peluche" },
+  { emoji: "🍫", en: "Box of Chocolates", fr: "Boîte de chocolats" },
+  { emoji: "💐", en: "Bunch of Flowers",  fr: "Bouquet de fleurs" },
+  { emoji: "☕", en: "Coffee Maker",      fr: "Cafetière" },
+  { emoji: "🚲", en: "Shiny Bicycle",     fr: "Beau vélo" },
+  { emoji: "📺", en: "Big Television",    fr: "Grand téléviseur" },
+  { emoji: "🏖️", en: "Seaside Holiday",   fr: "Vacances à la mer" },
+  { emoji: "🚗", en: "Brand New Car!",    fr: "Voiture neuve !" }
+];
+
+// ============================================================
+//  CAREGIVER: DIFFICULTY LEVELS
+// ============================================================
+//  Three levels, chosen on the first screen. You can adjust the
+//  numbers, but the defaults are tuned for care settings.
+//
+//    margin   : how far the "guess price" sits from the real
+//               price. Smaller = closer = harder to tell.
+//               (0.40 means roughly 40% away.)
+//    fail     : false = every answer is celebrated (no wrong
+//               answers at all). true = correct/incorrect are
+//               shown, but always kindly — never a "game over".
+//    prizeBy  : how prizes are earned —
+//               "rounds"  = every few turns, just for playing
+//               "correct" = every few CORRECT answers
+//               "streak"  = a run of correct answers in a row
+//    needed   : how many (rounds / correct / streak) per prize.
+// ============================================================
+const LEVELS = {
+  easy: {
+    marginLow: 0.40, marginHigh: 0.70,
+    fail: false,
+    prizeBy: "rounds", needed: 5
+  },
+  medium: {
+    marginLow: 0.18, marginHigh: 0.33,
+    fail: true,
+    prizeBy: "correct", needed: 5
+  },
+  hard: {
+    marginLow: 0.06, marginHigh: 0.14,
+    fail: true,
+    prizeBy: "streak", needed: 4
+  }
+};
+</script>
+
+<style>
+  /* ---------- Base layout ---------- */
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #fdf6e3;          /* warm, soft cream background */
+    color: #1a1a1a;              /* near-black for high contrast */
+    font-size: 32px;            /* minimum body text size */
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ---------- Top bar: language toggle + gentle rounds counter ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    font-size: 28px;
+    color: #5a5a5a;
+    letter-spacing: 0.5px;
+  }
+
+  /* Small badge showing the latest prize won (in the top bar) */
+  .prize-badge {
+    font-size: 30px;
+    font-weight: bold;
+    color: #6a4ba3;
+  }
+
+  /* The language toggle button (smaller than the play buttons) */
+  .btn-lang {
+    font-size: 28px;
+    font-weight: bold;
+    min-height: 0;
+    width: auto;
+    padding: 12px 24px;
+    border-radius: 16px;
+    background: #6a4ba3;          /* gentle purple, distinct from play buttons */
+    box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+  }
+
+  /* Small "home" button to return to the level screen */
+  .btn-home {
+    font-size: 30px;
+    min-height: 0;
+    width: auto;
+    padding: 10px 18px;
+    border-radius: 16px;
+    background: #8d6e63;          /* soft brown */
+    box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+  }
+
+  /* ---------- Start screen (choose a level) ---------- */
+  .start-title {
+    font-size: 64px;
+    font-weight: bold;
+    color: #1565c0;
+    margin-bottom: 8px;
+  }
+
+  .start-sub {
+    font-size: 36px;
+    color: #5a5a5a;
+    margin-bottom: 32px;
+  }
+
+  /* Level buttons stack the big label over a small description */
+  .level-btn {
+    flex-direction: column;
+    line-height: 1.15;
+    padding: 20px;
+  }
+
+  .level-desc {
+    display: block;
+    font-size: 26px;
+    font-weight: normal;
+    margin-top: 8px;
+  }
+
+  .btn-easy   { background: #2e7d32; }   /* green */
+  .btn-medium { background: #1565c0; }   /* blue */
+  .btn-hard   { background: #6a4ba3; }   /* purple */
+
+  /* ---------- Main play area ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    text-align: center;
+  }
+
+  /* Big product picture (emoji) */
+  .product-emoji {
+    font-size: 160px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  /* Product name */
+  .product-name {
+    font-size: 48px;
+    font-weight: bold;
+    margin-bottom: 24px;
+  }
+
+  /* The "price shown" prompt */
+  .price-prompt {
+    font-size: 36px;
+    margin-bottom: 8px;
+  }
+
+  .price-shown {
+    font-size: 72px;
+    font-weight: bold;
+    color: #1565c0;             /* strong blue, easy to read */
+    margin-bottom: 32px;
+  }
+
+  /* ---------- Buttons ---------- */
+  .button-row {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 640px;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 48px;
+    font-weight: bold;
+    min-height: 120px;          /* huge tap targets */
+    width: 100%;
+    border: none;
+    border-radius: 24px;
+    color: #ffffff;
+    cursor: pointer;
+    padding: 16px;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.18);
+    transition: transform 0.05s ease;
+  }
+
+  button:active { transform: translateY(4px); }
+
+  .btn-more { background: #2e7d32; }   /* green */
+  .btn-less { background: #c62828; }   /* red */
+  .btn-next { background: #1565c0; }   /* blue */
+
+  /* ---------- Reveal screen ---------- */
+  .reveal-emoji {
+    font-size: 160px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .reveal-cheer {
+    font-size: 52px;
+    font-weight: bold;
+    color: #2e7d32;
+    margin-bottom: 16px;
+  }
+
+  .reveal-checkmark {
+    font-size: 90px;
+    margin-bottom: 8px;
+  }
+
+  .reveal-text {
+    font-size: 40px;
+    margin-bottom: 8px;
+  }
+
+  .reveal-price {
+    font-size: 80px;
+    font-weight: bold;
+    color: #1565c0;
+    margin-bottom: 32px;
+  }
+
+  /* Utility to hide whichever screen is not active */
+  .hidden { display: none; }
+
+  /* Gentle pop animation for the reveal */
+  @keyframes pop {
+    0%   { transform: scale(0.6); opacity: 0; }
+    60%  { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  .pop { animation: pop 0.45s ease-out; }
+
+  /* ---------- Prize celebration screen ---------- */
+  .prize-cheer {
+    font-size: 60px;
+    font-weight: bold;
+    color: #6a4ba3;             /* celebratory purple */
+    margin-bottom: 8px;
+  }
+
+  .prize-emoji {
+    font-size: 200px;            /* extra big for the big moment */
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .prize-intro {
+    font-size: 40px;
+    margin-bottom: 8px;
+  }
+
+  .prize-name {
+    font-size: 80px;
+    font-weight: bold;
+    color: #6a4ba3;
+    margin-bottom: 32px;
+  }
+
+  /* The "keep playing" button uses the friendly purple too */
+  .btn-continue { background: #6a4ba3; }
+
+  /* A gentle wiggle to make the prize feel exciting */
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    25%      { transform: rotate(-5deg) scale(1.05); }
+    75%      { transform: rotate(5deg) scale(1.05); }
+  }
+  .wiggle { animation: wiggle 0.6s ease-in-out 2; }
+</style>
+</head>
+
+<body>
+
+  <header>
+    <button class="btn-home hidden" id="homeBtn" onclick="showStart()">🏠</button>
+    <span id="progress"></span>
+    <span class="prize-badge hidden" id="prizeBadge">🏆 <span id="prizeBadgeEmoji"></span></span>
+    <button class="btn-lang" id="langBtn" onclick="toggleLanguage()">Français</button>
+  </header>
+
+  <main>
+    <!-- ===== START SCREEN (choose a level) ===== -->
+    <div id="startScreen">
+      <div class="start-title" id="startTitle">The Price Is Right</div>
+      <div class="start-sub" id="chooseLevel">Choose a level</div>
+
+      <div class="button-row">
+        <button class="btn-easy level-btn" onclick="startGame('easy')">
+          <span id="lvlEasy">🌼 Gentle</span>
+          <span class="level-desc" id="lvlEasyDesc">Just for fun — no wrong answers</span>
+        </button>
+        <button class="btn-medium level-btn" onclick="startGame('medium')">
+          <span id="lvlMedium">⭐ Medium</span>
+          <span class="level-desc" id="lvlMediumDesc">A little challenge</span>
+        </button>
+        <button class="btn-hard level-btn" onclick="startGame('hard')">
+          <span id="lvlHard">🔥 Sharper</span>
+          <span class="level-desc" id="lvlHardDesc">Prices are close — build a streak!</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== GUESS SCREEN ===== -->
+    <div id="guessScreen" class="hidden">
+      <div class="product-emoji" id="guessEmoji">🍞</div>
+      <div class="product-name" id="guessName">Loaf of Bread</div>
+
+      <div class="price-prompt" id="pricePrompt">Is the real price...</div>
+      <div class="price-shown" id="guessShown">$2.50?</div>
+
+      <div class="button-row">
+        <button class="btn-more" id="btnMore" onclick="makeGuess('more')">MORE ⬆️</button>
+        <button class="btn-less" id="btnLess" onclick="makeGuess('less')">LESS ⬇️</button>
+      </div>
+    </div>
+
+    <!-- ===== REVEAL SCREEN ===== -->
+    <div id="revealScreen" class="hidden">
+      <div class="reveal-emoji" id="revealEmoji">🍞</div>
+      <div class="reveal-checkmark" id="revealIcon">✅</div>
+      <div class="reveal-cheer" id="revealCheer">Well done!</div>
+      <div class="reveal-text" id="revealText">The real price was</div>
+      <div class="reveal-price" id="revealPrice">$1.50</div>
+
+      <div class="button-row">
+        <button class="btn-next" id="btnNext" onclick="nextRound()">NEXT ➡️</button>
+      </div>
+    </div>
+
+    <!-- ===== PRIZE CELEBRATION SCREEN ===== -->
+    <div id="prizeScreen" class="hidden">
+      <div class="prize-cheer" id="prizeCheer">Congratulations!</div>
+      <div class="prize-emoji" id="prizeEmoji">🚗</div>
+      <div class="prize-intro" id="prizeIntro">You've won...</div>
+      <div class="prize-name" id="prizeName">Brand New Car!</div>
+
+      <div class="button-row">
+        <button class="btn-continue" id="btnContinue" onclick="continueFromPrize()">KEEP PLAYING ➡️</button>
+      </div>
+    </div>
+  </main>
+
+<script>
+  // ---------- Game state ----------
+  let rounds = 0;
+  let order = [];          // shuffled list of product indexes
+  let position = 0;        // where we are in the shuffled list
+  let current = null;      // the product being shown right now
+  let currentShown = 0;    // the "guess price" shown for the current product
+  let currentLevel = null; // "easy" | "medium" | "hard" (null on start screen)
+  let lang = "en";         // current language: "en" or "fr"
+  let onReveal = false;    // is the reveal screen showing?
+  let onPrize = false;     // is the prize celebration showing?
+  let lastWasRight = false;// did the last guess match?
+  let lastCheerIndex = 0;  // which cheer to repeat if language is switched
+  let correctToward = 0;   // correct answers counted toward the next prize (Medium)
+  let streak = 0;          // correct answers in a row (Sharper)
+  let prizesWon = 0;       // how many prizes won so far (drives which prize is next)
+  let pendingPrize = -1;   // a prize waiting to be celebrated after NEXT (-1 = none)
+  let prizeShowing = -1;   // the prize currently on the celebration screen
+  let latestPrizeIndex = -1; // best prize won so far (for the top-bar badge)
+
+  // ---------- Audio: a cheerful little chime ----------
+  // Uses the Web Audio API so we need no sound files (works offline).
+  let audioCtx = null;
+  function playChime() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = [523.25, 659.25, 783.99]; // a happy C-major chord arpeggio
+      notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        const start = audioCtx.currentTime + i * 0.12;
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.3, start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.5);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + 0.55);
+      });
+    } catch (e) {
+      // If sound is unavailable, the game still works fine silently.
+    }
+  }
+
+  // A longer, more exciting fanfare for winning a prize.
+  function playFanfare() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50]; // rising "ta-da!"
+      notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.value = freq;
+        const start = audioCtx.currentTime + i * 0.14;
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.35, start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.45);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + 0.5);
+      });
+    } catch (e) {
+      // Silent fallback.
+    }
+  }
+
+  // A soft, warm two-note tone for a "good try" (never a harsh buzzer).
+  function playSoftTone() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = [440.00, 392.00]; // gentle, reassuring descending step
+      notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        const start = audioCtx.currentTime + i * 0.18;
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.22, start + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + 0.45);
+      });
+    } catch (e) {
+      // Silent fallback.
+    }
+  }
+
+  // ---------- Helpers ----------
+  function money(value) {
+    return CURRENCY + value.toFixed(2);
+  }
+
+  // Make a "guess price" that sits near the real price. How close it
+  // is depends on the chosen difficulty level (closer = harder).
+  function generateShown(price) {
+    const lv = LEVELS[currentLevel];
+    const margin = lv.marginLow + Math.random() * (lv.marginHigh - lv.marginLow);
+    const goUp = Math.random() < 0.5;
+    let shown = goUp ? price * (1 + margin) : price * (1 - margin);
+    shown = Math.round(shown * 100) / 100;
+    // Safety: never zero/negative, and never identical to the real price.
+    if (shown <= 0) shown = 0.05;
+    if (shown === price) shown = goUp ? price + 0.05 : Math.max(0.05, price - 0.05);
+    return shown;
+  }
+
+  // Update the gentle progress indicator in the top bar.
+  function updateProgress() {
+    const t = TEXT[lang];
+    const el = document.getElementById("progress");
+    if (!currentLevel) { el.textContent = ""; return; }
+    const lv = LEVELS[currentLevel];
+    if (lv.prizeBy === "rounds") {
+      el.textContent = t.rounds + rounds;            // "Rounds played: 3"
+    } else if (lv.prizeBy === "correct") {
+      el.textContent = "⭐ " + correctToward + " / " + lv.needed;
+    } else {
+      el.textContent = "🔥 " + streak + " / " + lv.needed;
+    }
+  }
+
+  // Make a fresh shuffled order so products don't repeat in a row.
+  function shuffle() {
+    order = PRODUCTS.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    position = 0;
+  }
+
+  // ---------- Apply the current language to all on-screen text ----------
+  function applyLanguage() {
+    const t = TEXT[lang];
+    document.documentElement.lang = lang;
+
+    // Top bar + start screen labels.
+    document.getElementById("langBtn").textContent = t.langButton;
+    document.getElementById("startTitle").textContent = t.title;
+    document.getElementById("chooseLevel").textContent = t.chooseLevel;
+    document.getElementById("lvlEasy").textContent = t.lvlEasy;
+    document.getElementById("lvlEasyDesc").textContent = t.lvlEasyDesc;
+    document.getElementById("lvlMedium").textContent = t.lvlMedium;
+    document.getElementById("lvlMediumDesc").textContent = t.lvlMediumDesc;
+    document.getElementById("lvlHard").textContent = t.lvlHard;
+    document.getElementById("lvlHardDesc").textContent = t.lvlHardDesc;
+
+    // Play + reveal + prize labels.
+    document.getElementById("pricePrompt").textContent = t.prompt;
+    document.getElementById("btnMore").textContent = t.more;
+    document.getElementById("btnLess").textContent = t.less;
+    document.getElementById("btnNext").textContent = t.next;
+    document.getElementById("prizeCheer").textContent = t.prizeCheer;
+    document.getElementById("prizeIntro").textContent = t.prizeIntro;
+    document.getElementById("btnContinue").textContent = t.prizeContinue;
+
+    updateProgress();
+
+    // Refresh whichever play screen is currently visible.
+    if (current) {
+      document.getElementById("guessName").textContent = current[lang];
+    }
+    if (onReveal) {
+      const failLevel = currentLevel && LEVELS[currentLevel].fail;
+      if (!failLevel) {
+        // Gentle level: always warm wording.
+        document.getElementById("revealCheer").textContent = t.cheers[lastCheerIndex];
+        document.getElementById("revealText").textContent =
+          lastWasRight ? t.gotIt : t.closeGuess;
+      } else if (lastWasRight) {
+        document.getElementById("revealCheer").textContent = t.rightCheer;
+        document.getElementById("revealText").textContent = t.rightText;
+      } else {
+        document.getElementById("revealCheer").textContent = t.wrongCheer;
+        document.getElementById("revealText").textContent = t.wrongText;
+      }
+    }
+    if (onPrize && prizeShowing >= 0) {
+      document.getElementById("prizeName").textContent = PRIZES[prizeShowing][lang];
+    }
+  }
+
+  // ---------- Switch between English and French ----------
+  function toggleLanguage() {
+    lang = (lang === "en") ? "fr" : "en";
+    applyLanguage();
+  }
+
+  // ---------- Show a product to guess ----------
+  function showGuess() {
+    if (position >= order.length) shuffle(); // reshuffle when we run out
+    current = PRODUCTS[order[position]];
+    position++;
+    currentShown = generateShown(current.price);
+    onReveal = false;
+
+    document.getElementById("guessEmoji").textContent = current.emoji;
+    document.getElementById("guessName").textContent = current[lang];
+    document.getElementById("guessShown").textContent = money(currentShown) + "?";
+
+    document.getElementById("startScreen").classList.add("hidden");
+    document.getElementById("guessScreen").classList.remove("hidden");
+    document.getElementById("revealScreen").classList.add("hidden");
+    document.getElementById("prizeScreen").classList.add("hidden");
+  }
+
+  // ---------- Player taps MORE or LESS ----------
+  function makeGuess(choice) {
+    const t = TEXT[lang];
+    const lv = LEVELS[currentLevel];
+
+    // Work out whether the guess matched the real price.
+    const realIsMore = current.price > currentShown;
+    lastWasRight = (choice === "more" && realIsMore) ||
+                   (choice === "less" && !realIsMore);
+
+    rounds++;
+
+    // ----- Feedback wording, icon, colour and sound -----
+    const icon  = document.getElementById("revealIcon");
+    const cheer = document.getElementById("revealCheer");
+
+    if (!lv.fail) {
+      // GENTLE level: no wrong answers. Always warm and celebratory.
+      lastCheerIndex = rounds % t.cheers.length;
+      cheer.textContent = t.cheers[lastCheerIndex];
+      cheer.style.color = "#2e7d32";
+      icon.textContent = "✅";
+      document.getElementById("revealText").textContent =
+        lastWasRight ? t.gotIt : t.closeGuess;
+      playChime();
+    } else if (lastWasRight) {
+      // MEDIUM / SHARPER, correct: a clear, happy "yes!"
+      cheer.textContent = t.rightCheer;
+      cheer.style.color = "#2e7d32";
+      icon.textContent = "✅";
+      document.getElementById("revealText").textContent = t.rightText;
+      playChime();
+    } else {
+      // MEDIUM / SHARPER, not quite: kind and encouraging, never harsh.
+      cheer.textContent = t.wrongCheer;
+      cheer.style.color = "#ef6c00";   // warm amber, not alarming red
+      icon.textContent = "💛";
+      document.getElementById("revealText").textContent = t.wrongText;
+      playSoftTone();
+    }
+
+    document.getElementById("revealEmoji").textContent = current.emoji;
+    document.getElementById("revealPrice").textContent = money(current.price);
+
+    // ----- Prize progress, depending on the level -----
+    if (lv.prizeBy === "rounds") {
+      // Won just by taking part.
+      if (rounds % lv.needed === 0) awardPrize();
+    } else if (lv.prizeBy === "correct") {
+      // Won by getting answers right (a wrong one simply doesn't count).
+      if (lastWasRight) {
+        correctToward++;
+        if (correctToward >= lv.needed) { awardPrize(); correctToward = 0; }
+      }
+    } else { // "streak"
+      // Won by a run of correct answers. A miss gently resets the run —
+      // the kindest form of "fail": you just start a fresh streak.
+      if (lastWasRight) {
+        streak++;
+        if (streak >= lv.needed) { awardPrize(); streak = 0; }
+      } else {
+        streak = 0;
+      }
+    }
+
+    updateProgress();
+
+    // Switch to the reveal screen with a little pop.
+    onReveal = true;
+    const reveal = document.getElementById("revealScreen");
+    document.getElementById("guessScreen").classList.add("hidden");
+    reveal.classList.remove("hidden");
+    reveal.classList.remove("pop");
+    void reveal.offsetWidth; // restart the animation
+    reveal.classList.add("pop");
+  }
+
+  // ---------- Queue up the next prize to celebrate ----------
+  function awardPrize() {
+    pendingPrize = Math.min(prizesWon, PRIZES.length - 1);
+    prizesWon++;
+  }
+
+  // ---------- Move on after the reveal ----------
+  // If a prize is waiting, celebrate it first; otherwise next product.
+  function nextRound() {
+    if (pendingPrize >= 0) {
+      showPrize(pendingPrize);
+      pendingPrize = -1;
+    } else {
+      showGuess();
+    }
+  }
+
+  // ---------- Show the prize celebration ----------
+  function showPrize(index) {
+    const t = TEXT[lang];
+    const prize = PRIZES[index];
+    prizeShowing = index;
+    onReveal = false;
+    onPrize = true;
+
+    // Keep the best prize in the top-bar badge as a happy reminder.
+    if (index > latestPrizeIndex) latestPrizeIndex = index;
+    const badge = document.getElementById("prizeBadge");
+    document.getElementById("prizeBadgeEmoji").textContent = PRIZES[latestPrizeIndex].emoji;
+    badge.classList.remove("hidden");
+
+    document.getElementById("prizeCheer").textContent = t.prizeCheer;
+    document.getElementById("prizeIntro").textContent = t.prizeIntro;
+    document.getElementById("prizeEmoji").textContent = prize.emoji;
+    document.getElementById("prizeName").textContent = prize[lang];
+
+    document.getElementById("guessScreen").classList.add("hidden");
+    document.getElementById("revealScreen").classList.add("hidden");
+    const screen = document.getElementById("prizeScreen");
+    screen.classList.remove("hidden");
+
+    // Make the prize emoji wiggle excitedly.
+    const emoji = document.getElementById("prizeEmoji");
+    emoji.classList.remove("wiggle");
+    void emoji.offsetWidth;
+    emoji.classList.add("wiggle");
+
+    playFanfare();
+  }
+
+  // ---------- Carry on after celebrating a prize ----------
+  function continueFromPrize() {
+    onPrize = false;
+    showGuess();
+  }
+
+  // ---------- Begin a game at the chosen level ----------
+  function startGame(level) {
+    currentLevel = level;
+    // Fresh start for every new game.
+    rounds = 0;
+    correctToward = 0;
+    streak = 0;
+    prizesWon = 0;
+    latestPrizeIndex = -1;
+    pendingPrize = -1;
+    onReveal = false;
+    onPrize = false;
+
+    document.getElementById("homeBtn").classList.remove("hidden");
+    document.getElementById("prizeBadge").classList.add("hidden");
+
+    shuffle();
+    showGuess();
+    updateProgress();
+  }
+
+  // ---------- Return to the level-choosing screen ----------
+  function showStart() {
+    currentLevel = null;
+    current = null;
+    onReveal = false;
+    onPrize = false;
+
+    document.getElementById("startScreen").classList.remove("hidden");
+    document.getElementById("guessScreen").classList.add("hidden");
+    document.getElementById("revealScreen").classList.add("hidden");
+    document.getElementById("prizeScreen").classList.add("hidden");
+
+    document.getElementById("homeBtn").classList.add("hidden");
+    document.getElementById("prizeBadge").classList.add("hidden");
+    document.getElementById("progress").textContent = "";
+  }
+
+  // ---------- First load: show the level screen ----------
+  applyLanguage();
+  showStart();
+</script>
+
+</body>
+</html>
