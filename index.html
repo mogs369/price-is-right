@@ -3,909 +3,1215 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Price Is Right</title>
+<title>Numbers &amp; Reasoning — Practice Set</title>
 
 <!--
   ============================================================
-  THE PRICE IS RIGHT
-  A gentle, no-fail guessing game for people living with
-  dementia. Designed for tablets and touch screens in care
-  settings.
+  NUMBERS & REASONING  /  NOMBRES ET RAISONNEMENT
+  A bilingual (EN/FR) math worksheet generator for cognitive
+  stimulation with a capable adult. Fully offline, no build
+  step, no libraries. Everything lives in this one file.
 
-  HOW TO PLAY:
-    1. Choose a level on the first screen.
-    2. A familiar product and a price are shown.
-    3. The player taps MORE or LESS to guess whether the real
-       price is higher or lower than the price shown.
-    4. The real price is revealed with warm feedback.
-    5. Tap NEXT to move on at their own pace.
+  Six toggleable categories, three difficulty levels, a
+  "New set" regenerator, per-question answer buttons plus a
+  global answer toggle (hidden by default), and a clean
+  high-contrast print layout (worksheet on one page, answer
+  key on a separate optional page).
 
-  THREE LEVELS (for different stages):
-    🌼 Gentle  — no wrong answers; every guess is celebrated.
-    ⭐ Medium  — prices are closer; correct answers earn prizes.
-    🔥 Sharper — prices very close; build a streak of correct
-                 answers. A miss only resets the streak — it is
-                 always kind, never a "game over".
-
-  No timers. No scolding. The harder levels add a gentle,
-  encouraging challenge — never a punishing one.
+  Design intent: calm, adult, respectful. No cartoons.
   ============================================================
 -->
-
-<!--
-  ============================================================
-  CAREGIVER: EDIT THE PRODUCTS HERE
-  ============================================================
-  This is the ONLY part you need to change to swap products.
-
-  Each product has these parts:
-     emoji : a picture (an emoji). You can paste any emoji.
-     en    : the product name in English.
-     fr    : the product name in French.
-     price : the REAL price of the item (a number).
-
-  The game shows a "guess price" near the real price and asks
-  whether the real price is MORE or LESS. How CLOSE that guess
-  price is depends on the difficulty level the player picks on
-  the first screen — so you only need to set the real price.
-
-  Prices are just for fun — make them whatever feels familiar
-  to the people you care for.
-  ============================================================
--->
-<script>
-const PRODUCTS = [
-  { emoji: "🍞", en: "Loaf of Bread",      fr: "Pain",                         price: 1.50 },
-  { emoji: "🥛", en: "Bottle of Milk",     fr: "Bouteille de lait",            price: 1.30 },
-  { emoji: "🥚", en: "Dozen Eggs",         fr: "Douzaine d'œufs",              price: 2.20 },
-  { emoji: "🧈", en: "Tub of Butter",      fr: "Beurre",                       price: 2.00 },
-  { emoji: "🧀", en: "Block of Cheese",    fr: "Bloc de fromage",              price: 3.50 },
-  { emoji: "🍌", en: "Bunch of Bananas",   fr: "Régime de bananes",            price: 1.00 },
-  { emoji: "🍎", en: "Bag of Apples",      fr: "Sac de pommes",                price: 2.50 },
-  { emoji: "🥔", en: "Bag of Potatoes",    fr: "Sac de pommes de terre",       price: 2.00 },
-  { emoji: "🍅", en: "Tin of Tomatoes",    fr: "Boîte de tomates",             price: 0.80 },
-  { emoji: "🫘", en: "Tin of Baked Beans", fr: "Boîte de fèves au lard",       price: 0.90 },
-  { emoji: "🍯", en: "Jar of Honey",       fr: "Pot de miel",                  price: 3.00 },
-  { emoji: "☕", en: "Jar of Coffee",      fr: "Pot de café",                  price: 4.50 },
-  { emoji: "🍵", en: "Box of Tea Bags",    fr: "Boîte de sachets de thé",      price: 2.50 },
-  { emoji: "🍫", en: "Bar of Chocolate",   fr: "Tablette de chocolat",         price: 1.20 },
-  { emoji: "🍬", en: "Bag of Sweets",      fr: "Sac de bonbons",               price: 1.50 },
-  { emoji: "🍪", en: "Packet of Biscuits", fr: "Paquet de biscuits",           price: 1.10 },
-  { emoji: "🥤", en: "Bottle of Soda",     fr: "Bouteille de boisson gazeuse", price: 1.30 },
-  { emoji: "🧃", en: "Carton of Juice",    fr: "Carton de jus",                price: 1.60 },
-  { emoji: "🍊", en: "Bag of Oranges",     fr: "Sac d'oranges",                price: 2.20 },
-  { emoji: "🥕", en: "Bag of Carrots",     fr: "Sac de carottes",              price: 0.70 },
-  { emoji: "🧼", en: "Bar of Soap",        fr: "Savon",                        price: 1.00 },
-  { emoji: "🧻", en: "Toilet Roll Pack",   fr: "Paquet de papier toilette",    price: 3.50 },
-  { emoji: "🪥", en: "Toothbrush",         fr: "Brosse à dents",               price: 1.50 },
-  { emoji: "🧂", en: "Box of Salt",        fr: "Boîte de sel",                 price: 0.60 },
-  { emoji: "🍚", en: "Bag of Rice",        fr: "Sac de riz",                   price: 2.00 },
-  { emoji: "🍝", en: "Packet of Pasta",    fr: "Paquet de pâtes",              price: 1.00 },
-  { emoji: "🥓", en: "Pack of Bacon",      fr: "Paquet de bacon",              price: 3.00 },
-  { emoji: "🍦", en: "Tub of Ice Cream",   fr: "Pot de crème glacée",          price: 2.80 },
-  { emoji: "🥫", en: "Tin of Soup",        fr: "Boîte de soupe",               price: 0.90 },
-  { emoji: "🍮", en: "Pot of Custard",     fr: "Pot de crème anglaise",        price: 1.20 }
-];
-
-// ---------- Wording in both languages (caregivers can tweak too) ----------
-const TEXT = {
-  en: {
-    langButton: "Français",          // tap to switch TO French
-    title:      "The Price Is Right",
-    chooseLevel:"Choose a level",
-    lvlEasy:        "🌼 Gentle",
-    lvlEasyDesc:    "Just for fun — no wrong answers",
-    lvlMedium:      "⭐ Medium",
-    lvlMediumDesc:  "A little challenge",
-    lvlHard:        "🔥 Sharper",
-    lvlHardDesc:    "Prices are close — build a streak!",
-    rounds:     "Rounds played: ",
-    prompt:     "Is the real price...",
-    more:       "MORE ⬆️",
-    less:       "LESS ⬇️",
-    next:       "NEXT ➡️",
-    gotIt:      "You got it! The real price was",
-    closeGuess: "Great guess! The real price was",
-    cheers: ["Well done!", "Great guess!", "Lovely!", "Wonderful!",
-             "Nice one!", "Brilliant!", "Good job!", "Fantastic!"],
-    rightCheer: "That's right!",     // shown when correct (Medium/Sharper)
-    wrongCheer: "Good try!",         // gentle, never scolding
-    rightText:  "Correct! The real price was",
-    wrongText:  "The real price was",
-    prizeCheer:    "Congratulations!",
-    prizeIntro:    "You've won...",
-    prizeContinue: "KEEP PLAYING ➡️"
-  },
-  fr: {
-    langButton: "English",           // tap to switch TO English
-    title:      "Le Juste Prix",
-    chooseLevel:"Choisissez un niveau",
-    lvlEasy:        "🌼 Tout en douceur",
-    lvlEasyDesc:    "Pour le plaisir — aucune mauvaise réponse",
-    lvlMedium:      "⭐ Moyen",
-    lvlMediumDesc:  "Un petit défi",
-    lvlHard:        "🔥 Plus pointu",
-    lvlHardDesc:    "Les prix sont proches — enchaînez les bonnes réponses !",
-    rounds:     "Parties jouées : ",
-    prompt:     "Le vrai prix est-il...",
-    more:       "PLUS ⬆️",
-    less:       "MOINS ⬇️",
-    next:       "SUIVANT ➡️",
-    gotIt:      "Bravo ! Le vrai prix était",
-    closeGuess: "Bien deviné ! Le vrai prix était",
-    cheers: ["Bravo !", "Bien joué !", "Magnifique !", "Merveilleux !",
-             "Excellent !", "Superbe !", "Parfait !", "Fantastique !"],
-    rightCheer: "C'est exact !",
-    wrongCheer: "Bel essai !",
-    rightText:  "Correct ! Le vrai prix était",
-    wrongText:  "Le vrai prix était",
-    prizeCheer:    "Félicitations !",
-    prizeIntro:    "Vous avez gagné...",
-    prizeContinue: "CONTINUER ➡️"
-  }
-};
-
-// Currency symbol shown before every price. Change to "$", "€", etc.
-const CURRENCY = "$"; // Canadian dollars
-
-// ============================================================
-//  CAREGIVER: PRIZES YOU CAN WIN
-// ============================================================
-//  As the player keeps going, they reach bigger and bigger
-//  prizes — ending in a brand-new car! These are won just by
-//  playing, never lost. Edit the list or the emojis as you like.
-//  Order them small-to-big for the nicest effect.
-// ============================================================
-const PRIZES = [
-  { emoji: "🧸", en: "Teddy Bear",        fr: "Ours en peluche" },
-  { emoji: "🍫", en: "Box of Chocolates", fr: "Boîte de chocolats" },
-  { emoji: "💐", en: "Bunch of Flowers",  fr: "Bouquet de fleurs" },
-  { emoji: "☕", en: "Coffee Maker",      fr: "Cafetière" },
-  { emoji: "🚲", en: "Shiny Bicycle",     fr: "Beau vélo" },
-  { emoji: "📺", en: "Big Television",    fr: "Grand téléviseur" },
-  { emoji: "🏖️", en: "Seaside Holiday",   fr: "Vacances à la mer" },
-  { emoji: "🚗", en: "Brand New Car!",    fr: "Voiture neuve !" }
-];
-
-// ============================================================
-//  CAREGIVER: DIFFICULTY LEVELS
-// ============================================================
-//  Three levels, chosen on the first screen. You can adjust the
-//  numbers, but the defaults are tuned for care settings.
-//
-//    margin   : how far the "guess price" sits from the real
-//               price. Smaller = closer = harder to tell.
-//               (0.40 means roughly 40% away.)
-//    fail     : false = every answer is celebrated (no wrong
-//               answers at all). true = correct/incorrect are
-//               shown, but always kindly — never a "game over".
-//    prizeBy  : how prizes are earned —
-//               "rounds"  = every few turns, just for playing
-//               "correct" = every few CORRECT answers
-//               "streak"  = a run of correct answers in a row
-//    needed   : how many (rounds / correct / streak) per prize.
-// ============================================================
-const LEVELS = {
-  easy: {
-    marginLow: 0.40, marginHigh: 0.70,
-    fail: false,
-    prizeBy: "rounds", needed: 5
-  },
-  medium: {
-    marginLow: 0.18, marginHigh: 0.33,
-    fail: true,
-    prizeBy: "correct", needed: 5
-  },
-  hard: {
-    marginLow: 0.06, marginHigh: 0.14,
-    fail: true,
-    prizeBy: "streak", needed: 4
-  }
-};
-</script>
 
 <style>
-  /* ---------- Base layout ---------- */
-  * { box-sizing: border-box; }
-
-  html, body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
+  :root{
+    --bg:#f4f1ea;            /* warm off-white paper */
+    --panel:#ffffff;
+    --ink:#26303a;          /* deep slate */
+    --ink-soft:#516170;
+    --line:#d9d2c4;
+    --accent:#2f6b6b;       /* muted teal */
+    --accent-soft:#e5efee;
+    --gold:#8a6d3b;
+    --shadow:0 1px 3px rgba(38,48,58,.10),0 6px 18px rgba(38,48,58,.06);
+    --radius:10px;
   }
 
-  body {
-    font-family: Arial, Helvetica, sans-serif;
-    background: #fdf6e3;          /* warm, soft cream background */
-    color: #1a1a1a;              /* near-black for high contrast */
-    font-size: 32px;            /* minimum body text size */
-    -webkit-tap-highlight-color: transparent;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
+    font-size:19px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
   }
 
-  /* ---------- Top bar: language toggle + gentle rounds counter ---------- */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px;
-    font-size: 28px;
-    color: #5a5a5a;
-    letter-spacing: 0.5px;
+  .wrap{max-width:900px;margin:0 auto;padding:28px 22px 80px;}
+
+  /* ---------- Header ---------- */
+  header.masthead{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    gap:18px;flex-wrap:wrap;border-bottom:2px solid var(--line);
+    padding-bottom:16px;margin-bottom:22px;
+  }
+  .masthead h1{font-size:30px;margin:0;letter-spacing:.2px;font-weight:700;}
+  .masthead .subtitle{color:var(--ink-soft);font-size:16px;margin-top:4px;font-style:italic;}
+
+  .langtoggle{display:flex;gap:0;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow);}
+  .langtoggle button{
+    font-family:inherit;font-size:15px;padding:8px 18px;border:0;background:transparent;
+    color:var(--ink-soft);cursor:pointer;letter-spacing:.5px;
+  }
+  .langtoggle button.active{background:var(--accent);color:#fff;font-weight:700;}
+
+  /* ---------- Controls panel ---------- */
+  .controls{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:20px 22px;margin-bottom:26px;
+  }
+  .controls .row{margin-bottom:20px;}
+  .controls .row:last-child{margin-bottom:0;}
+  .controls .label{
+    display:block;font-size:14px;letter-spacing:.8px;text-transform:uppercase;
+    color:var(--ink-soft);margin-bottom:10px;font-family:Arial,Helvetica,sans-serif;font-weight:700;
   }
 
-  /* Small badge showing the latest prize won (in the top bar) */
-  .prize-badge {
-    font-size: 30px;
-    font-weight: bold;
-    color: #6a4ba3;
+  .segmented{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap;}
+  .segmented button{
+    font-family:inherit;font-size:17px;padding:10px 20px;border:0;border-right:1px solid var(--line);
+    background:var(--panel);color:var(--ink);cursor:pointer;
   }
+  .segmented button:last-child{border-right:0;}
+  .segmented button.active{background:var(--accent);color:#fff;font-weight:700;}
 
-  /* The language toggle button (smaller than the play buttons) */
-  .btn-lang {
-    font-size: 28px;
-    font-weight: bold;
-    min-height: 0;
-    width: auto;
-    padding: 12px 24px;
-    border-radius: 16px;
-    background: #6a4ba3;          /* gentle purple, distinct from play buttons */
-    box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+  .cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;}
+  .cat{
+    display:flex;align-items:flex-start;gap:12px;border:1px solid var(--line);
+    border-radius:8px;padding:12px 14px;cursor:pointer;background:var(--panel);
+    transition:border-color .15s,background .15s;user-select:none;
   }
+  .cat.on{border-color:var(--accent);background:var(--accent-soft);}
+  .cat input{width:20px;height:20px;margin-top:3px;accent-color:var(--accent);cursor:pointer;flex:none;}
+  .cat .cat-name{font-weight:700;font-size:17px;}
+  .cat .cat-desc{font-size:14px;color:var(--ink-soft);line-height:1.35;font-family:Arial,Helvetica,sans-serif;}
 
-  /* Small "home" button to return to the level screen */
-  .btn-home {
-    font-size: 30px;
-    min-height: 0;
-    width: auto;
-    padding: 10px 18px;
-    border-radius: 16px;
-    background: #8d6e63;          /* soft brown */
-    box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+  .actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .btn{
+    font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;letter-spacing:.3px;
+    padding:12px 22px;border-radius:8px;border:1px solid transparent;cursor:pointer;
   }
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:var(--shadow);}
+  .btn-primary:hover{background:#255757;}
+  .btn-ghost{background:var(--panel);color:var(--ink);border-color:var(--line);}
+  .btn-ghost:hover{background:#faf8f3;}
 
-  /* ---------- Start screen (choose a level) ---------- */
-  .start-title {
-    font-size: 64px;
-    font-weight: bold;
-    color: #1565c0;
-    margin-bottom: 8px;
+  /* ---------- Worksheet ---------- */
+  .sheet-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;margin:8px 0 6px;}
+  .sheet-head h2{font-size:23px;margin:0;}
+  .sheet-meta{color:var(--ink-soft);font-size:15px;font-family:Arial,Helvetica,sans-serif;}
+
+  ol.problems{list-style:none;counter-reset:p;margin:14px 0 0;padding:0;}
+  ol.problems > li{
+    counter-increment:p;position:relative;padding:18px 20px 18px 62px;margin-bottom:14px;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);break-inside:avoid;
   }
-
-  .start-sub {
-    font-size: 36px;
-    color: #5a5a5a;
-    margin-bottom: 32px;
+  ol.problems > li::before{
+    content:counter(p);position:absolute;left:16px;top:16px;
+    width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-family:Arial,Helvetica,sans-serif;
+    font-weight:700;font-size:17px;
   }
-
-  /* Level buttons stack the big label over a small description */
-  .level-btn {
-    flex-direction: column;
-    line-height: 1.15;
-    padding: 20px;
+  .p-tag{
+    display:inline-block;font-family:Arial,Helvetica,sans-serif;font-size:12px;letter-spacing:.7px;
+    text-transform:uppercase;color:var(--gold);border:1px solid #e2d6bf;background:#faf5ea;
+    padding:2px 9px;border-radius:999px;margin-bottom:8px;font-weight:700;
   }
+  .p-q{font-size:19px;}
+  .p-q .work{color:var(--ink-soft);font-style:italic;font-size:17px;display:block;margin-top:6px;}
 
-  .level-desc {
-    display: block;
-    font-size: 26px;
-    font-weight: normal;
-    margin-top: 8px;
+  /* per-question reveal button */
+  .p-reveal{
+    font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;letter-spacing:.3px;
+    color:var(--accent);background:transparent;border:1px solid var(--accent);border-radius:6px;
+    padding:7px 14px;cursor:pointer;margin-top:12px;
   }
+  .p-reveal:hover{background:var(--accent-soft);}
 
-  .btn-easy   { background: #2e7d32; }   /* green */
-  .btn-medium { background: #1565c0; }   /* blue */
-  .btn-hard   { background: #6a4ba3; }   /* purple */
-
-  /* ---------- Main play area ---------- */
-  main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    text-align: center;
+  .p-answer{
+    margin-top:12px;padding:11px 14px;border-left:4px solid var(--accent);background:var(--accent-soft);
+    border-radius:0 6px 6px 0;font-size:17px;
   }
+  .p-answer .a-label{font-family:Arial,Helvetica,sans-serif;font-size:12px;letter-spacing:.7px;
+    text-transform:uppercase;color:var(--accent);font-weight:700;margin-right:8px;}
 
-  /* Big product picture (emoji) */
-  .product-emoji {
-    font-size: 160px;
-    line-height: 1;
-    margin-bottom: 8px;
+  /* answer visibility: hidden until a per-question reveal, or the global toggle */
+  ol.problems .p-answer{display:none;}
+  ol.problems > li.revealed .p-answer{display:block;}
+  body.show-answers ol.problems .p-answer{display:block;}
+  body.show-answers .p-reveal{display:none;}
+
+  /* magic square grid */
+  table.msq{border-collapse:collapse;margin:10px 0 2px;}
+  table.msq td{
+    width:52px;height:52px;border:1.5px solid var(--ink);text-align:center;vertical-align:middle;
+    font-size:22px;font-family:Arial,Helvetica,sans-serif;font-weight:700;
   }
+  table.msq td.blank{background:#f4f1ea;color:var(--accent);}
 
-  /* Product name */
-  .product-name {
-    font-size: 48px;
-    font-weight: bold;
-    margin-bottom: 24px;
+  #answerkey{margin-top:34px;padding-top:22px;border-top:2px solid var(--line);}
+  #answerkey h2{font-size:22px;margin:0 0 12px;}
+  #answerkey ol{padding-left:26px;}
+  #answerkey li{margin-bottom:10px;break-inside:avoid;}
+  body:not(.show-answers) #answerkey{display:none;}
+
+  .empty{background:var(--panel);border:1px dashed var(--line);border-radius:var(--radius);
+    padding:34px;text-align:center;color:var(--ink-soft);}
+
+  footer.foot{margin-top:40px;text-align:center;color:var(--ink-soft);font-size:14px;
+    font-family:Arial,Helvetica,sans-serif;}
+
+  /* ---------- Print ---------- */
+  @media print{
+    :root{--bg:#fff;}
+    body{background:#fff;font-size:13pt;}
+    .wrap{max-width:none;padding:0;}
+    .no-print{display:none !important;}
+    .masthead{border-bottom:2px solid #000;}
+    ol.problems > li,.controls,#answerkey li{box-shadow:none;}
+    ol.problems > li{border:1px solid #999;}
+    ol.problems > li::before{background:#000;}
+    .p-tag{color:#000;border-color:#999;background:#fff;}
+    .p-reveal{display:none !important;}
+    /* Worksheet page stays clean — inline answers never print */
+    ol.problems .p-answer{display:none !important;}
+    /* Answer key prints on its own page, only when the global toggle is on */
+    body:not(.show-answers) #answerkey{display:none;}
+    body.show-answers #answerkey{display:block;page-break-before:always;}
+    a[href]:after{content:"";}
   }
-
-  /* The "price shown" prompt */
-  .price-prompt {
-    font-size: 36px;
-    margin-bottom: 8px;
-  }
-
-  .price-shown {
-    font-size: 72px;
-    font-weight: bold;
-    color: #1565c0;             /* strong blue, easy to read */
-    margin-bottom: 32px;
-  }
-
-  /* ---------- Buttons ---------- */
-  .button-row {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    width: 100%;
-    max-width: 640px;
-  }
-
-  button {
-    font-family: inherit;
-    font-size: 48px;
-    font-weight: bold;
-    min-height: 120px;          /* huge tap targets */
-    width: 100%;
-    border: none;
-    border-radius: 24px;
-    color: #ffffff;
-    cursor: pointer;
-    padding: 16px;
-    box-shadow: 0 6px 0 rgba(0,0,0,0.18);
-    transition: transform 0.05s ease;
-  }
-
-  button:active { transform: translateY(4px); }
-
-  .btn-more { background: #2e7d32; }   /* green */
-  .btn-less { background: #c62828; }   /* red */
-  .btn-next { background: #1565c0; }   /* blue */
-
-  /* ---------- Reveal screen ---------- */
-  .reveal-emoji {
-    font-size: 160px;
-    line-height: 1;
-    margin-bottom: 8px;
-  }
-
-  .reveal-cheer {
-    font-size: 52px;
-    font-weight: bold;
-    color: #2e7d32;
-    margin-bottom: 16px;
-  }
-
-  .reveal-checkmark {
-    font-size: 90px;
-    margin-bottom: 8px;
-  }
-
-  .reveal-text {
-    font-size: 40px;
-    margin-bottom: 8px;
-  }
-
-  .reveal-price {
-    font-size: 80px;
-    font-weight: bold;
-    color: #1565c0;
-    margin-bottom: 32px;
-  }
-
-  /* Utility to hide whichever screen is not active */
-  .hidden { display: none; }
-
-  /* Gentle pop animation for the reveal */
-  @keyframes pop {
-    0%   { transform: scale(0.6); opacity: 0; }
-    60%  { transform: scale(1.1); opacity: 1; }
-    100% { transform: scale(1); }
-  }
-  .pop { animation: pop 0.45s ease-out; }
-
-  /* ---------- Prize celebration screen ---------- */
-  .prize-cheer {
-    font-size: 60px;
-    font-weight: bold;
-    color: #6a4ba3;             /* celebratory purple */
-    margin-bottom: 8px;
-  }
-
-  .prize-emoji {
-    font-size: 200px;            /* extra big for the big moment */
-    line-height: 1;
-    margin-bottom: 8px;
-  }
-
-  .prize-intro {
-    font-size: 40px;
-    margin-bottom: 8px;
-  }
-
-  .prize-name {
-    font-size: 80px;
-    font-weight: bold;
-    color: #6a4ba3;
-    margin-bottom: 32px;
-  }
-
-  /* The "keep playing" button uses the friendly purple too */
-  .btn-continue { background: #6a4ba3; }
-
-  /* A gentle wiggle to make the prize feel exciting */
-  @keyframes wiggle {
-    0%, 100% { transform: rotate(0deg) scale(1); }
-    25%      { transform: rotate(-5deg) scale(1.05); }
-    75%      { transform: rotate(5deg) scale(1.05); }
-  }
-  .wiggle { animation: wiggle 0.6s ease-in-out 2; }
 </style>
 </head>
-
 <body>
+<div class="wrap">
 
-  <header>
-    <button class="btn-home hidden" id="homeBtn" onclick="showStart()">🏠</button>
-    <span id="progress"></span>
-    <span class="prize-badge hidden" id="prizeBadge">🏆 <span id="prizeBadgeEmoji"></span></span>
-    <button class="btn-lang" id="langBtn" onclick="toggleLanguage()">Français</button>
+  <header class="masthead">
+    <div>
+      <h1 id="ui-title">Numbers &amp; Reasoning</h1>
+      <div class="subtitle" id="ui-subtitle">A practice set for keeping the mind active</div>
+    </div>
+    <div class="langtoggle no-print" role="group" aria-label="Language">
+      <button id="lang-en" class="active" onclick="setLang('en')">English</button>
+      <button id="lang-fr" onclick="setLang('fr')">Français</button>
+    </div>
   </header>
 
-  <main>
-    <!-- ===== START SCREEN (choose a level) ===== -->
-    <div id="startScreen">
-      <div class="start-title" id="startTitle">The Price Is Right</div>
-      <div class="start-sub" id="chooseLevel">Choose a level</div>
-
-      <div class="button-row">
-        <button class="btn-easy level-btn" onclick="startGame('easy')">
-          <span id="lvlEasy">🌼 Gentle</span>
-          <span class="level-desc" id="lvlEasyDesc">Just for fun — no wrong answers</span>
-        </button>
-        <button class="btn-medium level-btn" onclick="startGame('medium')">
-          <span id="lvlMedium">⭐ Medium</span>
-          <span class="level-desc" id="lvlMediumDesc">A little challenge</span>
-        </button>
-        <button class="btn-hard level-btn" onclick="startGame('hard')">
-          <span id="lvlHard">🔥 Sharper</span>
-          <span class="level-desc" id="lvlHardDesc">Prices are close — build a streak!</span>
-        </button>
+  <section class="controls no-print" aria-label="Options">
+    <div class="row">
+      <span class="label" id="ui-level-label">Difficulty</span>
+      <div class="segmented" id="levels" role="group">
+        <button data-level="gentle" onclick="setLevel('gentle')">Gentle</button>
+        <button data-level="standard" class="active" onclick="setLevel('standard')">Standard</button>
+        <button data-level="sharp" onclick="setLevel('sharp')">Sharp</button>
       </div>
     </div>
 
-    <!-- ===== GUESS SCREEN ===== -->
-    <div id="guessScreen" class="hidden">
-      <div class="product-emoji" id="guessEmoji">🍞</div>
-      <div class="product-name" id="guessName">Loaf of Bread</div>
-
-      <div class="price-prompt" id="pricePrompt">Is the real price...</div>
-      <div class="price-shown" id="guessShown">$2.50?</div>
-
-      <div class="button-row">
-        <button class="btn-more" id="btnMore" onclick="makeGuess('more')">MORE ⬆️</button>
-        <button class="btn-less" id="btnLess" onclick="makeGuess('less')">LESS ⬇️</button>
-      </div>
+    <div class="row">
+      <span class="label" id="ui-cats-label">Categories</span>
+      <div class="cats" id="cats"></div>
     </div>
 
-    <!-- ===== REVEAL SCREEN ===== -->
-    <div id="revealScreen" class="hidden">
-      <div class="reveal-emoji" id="revealEmoji">🍞</div>
-      <div class="reveal-checkmark" id="revealIcon">✅</div>
-      <div class="reveal-cheer" id="revealCheer">Well done!</div>
-      <div class="reveal-text" id="revealText">The real price was</div>
-      <div class="reveal-price" id="revealPrice">$1.50</div>
-
-      <div class="button-row">
-        <button class="btn-next" id="btnNext" onclick="nextRound()">NEXT ➡️</button>
-      </div>
+    <div class="row actions">
+      <button class="btn btn-primary" id="ui-new" onclick="newSet()">New set</button>
+      <button class="btn btn-ghost" id="ui-toggle" onclick="toggleAnswers()">Show all answers</button>
+      <button class="btn btn-ghost" id="ui-print" onclick="window.print()">Print</button>
     </div>
+  </section>
 
-    <!-- ===== PRIZE CELEBRATION SCREEN ===== -->
-    <div id="prizeScreen" class="hidden">
-      <div class="prize-cheer" id="prizeCheer">Congratulations!</div>
-      <div class="prize-emoji" id="prizeEmoji">🚗</div>
-      <div class="prize-intro" id="prizeIntro">You've won...</div>
-      <div class="prize-name" id="prizeName">Brand New Car!</div>
+  <div class="sheet-head">
+    <h2 id="ui-sheet-title">Practice Set</h2>
+    <div class="sheet-meta" id="ui-sheet-meta"></div>
+  </div>
 
-      <div class="button-row">
-        <button class="btn-continue" id="btnContinue" onclick="continueFromPrize()">KEEP PLAYING ➡️</button>
-      </div>
-    </div>
-  </main>
+  <ol class="problems" id="problems"></ol>
+
+  <section id="answerkey" aria-label="Answer key">
+    <h2 id="ui-answerkey-title">Answer Key</h2>
+    <ol id="answerkey-list"></ol>
+  </section>
+
+  <footer class="foot no-print" id="ui-foot"></footer>
+</div>
 
 <script>
-  // ---------- Game state ----------
-  let rounds = 0;
-  let order = [];          // shuffled list of product indexes
-  let position = 0;        // where we are in the shuffled list
-  let current = null;      // the product being shown right now
-  let currentShown = 0;    // the "guess price" shown for the current product
-  let currentLevel = null; // "easy" | "medium" | "hard" (null on start screen)
-  let lang = "en";         // current language: "en" or "fr"
-  let onReveal = false;    // is the reveal screen showing?
-  let onPrize = false;     // is the prize celebration showing?
-  let lastWasRight = false;// did the last guess match?
-  let lastCheerIndex = 0;  // which cheer to repeat if language is switched
-  let correctToward = 0;   // correct answers counted toward the next prize (Medium)
-  let streak = 0;          // correct answers in a row (Sharper)
-  let prizesWon = 0;       // how many prizes won so far (drives which prize is next)
-  let pendingPrize = -1;   // a prize waiting to be celebrated after NEXT (-1 = none)
-  let prizeShowing = -1;   // the prize currently on the celebration screen
-  let latestPrizeIndex = -1; // best prize won so far (for the top-bar badge)
+"use strict";
 
-  // ---------- Audio: a cheerful little chime ----------
-  // Uses the Web Audio API so we need no sound files (works offline).
-  let audioCtx = null;
-  function playChime() {
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [523.25, 659.25, 783.99]; // a happy C-major chord arpeggio
-      notes.forEach((freq, i) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        const start = audioCtx.currentTime + i * 0.12;
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.3, start + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.5);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(start);
-        osc.stop(start + 0.55);
-      });
-    } catch (e) {
-      // If sound is unavailable, the game still works fine silently.
+/* ============================================================
+   State & small helpers
+   ============================================================ */
+const state = {
+  lang:'en',
+  level:'standard',
+  cats:{money:true,shortcuts:true,patterns:true,words:true,geometry:true,algebra:true,estimation:true,logic:true},
+  showAnswers:false,
+  problems:[]
+};
+
+const rand = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+const choice = arr => arr[Math.floor(Math.random()*arr.length)];
+const shuffle = arr => { const a=arr.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const pad2 = n => (n<10?'0':'')+n;
+
+function money(n,lang){
+  const s = Number(n).toFixed(2);
+  return lang==='fr' ? s.replace('.',',')+' $' : '$'+s;
+}
+function num(n,lang){ return lang==='fr' ? String(n).replace('.',',') : String(n); }
+function grp(n,lang){ // thousands grouping for readability
+  const s=String(Math.round(n));
+  const sep = lang==='fr' ? ' ' : ',';
+  return s.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+}
+function fmtTime(mins,lang){
+  mins = ((mins%1440)+1440)%1440;
+  let h = Math.floor(mins/60), m = mins%60;
+  if(lang==='fr'){ return h+' h '+pad2(m); }
+  let ap = h<12?'a.m.':'p.m.';
+  let h12 = h%12; if(h12===0) h12=12;
+  return h12+':'+pad2(m)+' '+ap;
+}
+function durText(dur,lang){
+  const h=Math.floor(dur/60), m=dur%60;
+  if(lang==='fr'){
+    return (h?`${h} heure${h>1?'s':''}`:'')+(h&&m?' et ':'')+(m?`${m} minutes`:'');
+  }
+  return (h?`${h} hour${h>1?'s':''}`:'')+(h&&m?' and ':'')+(m?`${m} minutes`:'');
+}
+
+/* Shared bilingual noun banks (index-matched) */
+const GOODS = [
+  {en:'A coat',fr:'Un manteau'},{en:'A table lamp',fr:'Une lampe de table'},
+  {en:'An armchair',fr:'Un fauteuil'},{en:'A wristwatch',fr:'Une montre'},
+  {en:'A wool sweater',fr:'Un chandail de laine'},{en:'A kettle',fr:'Une bouilloire'},
+  {en:'A winter jacket',fr:'Un manteau d’hiver'},{en:'A pair of boots',fr:'Une paire de bottes'}
+];
+const GROCERIES = [
+  {en:'jars of jam',fr:'pots de confiture'},{en:'tins of soup',fr:'boîtes de soupe'},
+  {en:'loaves of bread',fr:'pains'},{en:'bags of apples',fr:'sacs de pommes'},
+  {en:'bottles of juice',fr:'bouteilles de jus'},{en:'boxes of tea',fr:'boîtes de thé'}
+];
+const DAYS = {
+  en:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+  fr:['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi']
+};
+
+/* ============================================================
+   1. Practical money
+   ============================================================ */
+function genMoney(level){
+  const kinds = level==='gentle'
+    ? ['change','discount','multi','tax']
+    : ['change','discount','multi','tip','split','tax','unit'];
+  const kind = choice(kinds);
+
+  if(kind==='change'){
+    let price, pay;
+    if(level==='gentle'){ price = rand(2,8); pay = 10; }
+    else if(level==='standard'){ price = rand(3,17) + choice([0,.25,.5,.75]); pay = price<10?10:20; }
+    else { price = rand(6,38) + choice([.05,.15,.35,.45,.65,.85,.99]); pay = price<20?20:50; }
+    const change = +(pay-price).toFixed(2);
+    return {cat:'money',
+      q:{en:`You buy a few groceries that come to ${money(price,'en')}. You hand over a ${money(pay,'en')} bill. How much change should you receive?`,
+         fr:`Vous achetez quelques provisions pour un total de ${money(price,'fr')}. Vous donnez un billet de ${money(pay,'fr')}. Combien devrait-on vous rendre?`},
+      a:{en:`${money(change,'en')} back.`, fr:`On devrait vous rendre ${money(change,'fr')}.`}};
+  }
+
+  if(kind==='discount'){
+    let P,pct;
+    if(level==='gentle'){ P = rand(2,8)*10; pct = choice([10,50]); }
+    else if(level==='standard'){ P = rand(4,18)*5; pct = choice([10,20,25]); }
+    else { P = rand(25,140); pct = choice([15,20,30,35]); }
+    const save = +(P*pct/100).toFixed(2), sale = +(P-save).toFixed(2);
+    const g = choice(GOODS);
+    return {cat:'money',
+      q:{en:`${g.en} is marked ${money(P,'en')} and is ${pct}% off. What is the sale price?`,
+         fr:`${g.fr} est affiché à ${money(P,'fr')} avec un rabais de ${pct} %. Quel est le prix soldé?`},
+      a:{en:`${pct}% of ${money(P,'en')} is ${money(save,'en')}, so the sale price is ${money(sale,'en')}.`,
+         fr:`${pct} % de ${money(P,'fr')} font ${money(save,'fr')}, donc le prix soldé est ${money(sale,'fr')}.`}};
+  }
+
+  if(kind==='multi'){
+    let n1,p1,n2,p2;
+    if(level==='gentle'){ n1=rand(2,4); p1=rand(2,5); n2=0; }
+    else if(level==='standard'){ n1=rand(3,5); p1=choice([1.5,2,2.5,3]); n2=rand(2,3); p2=choice([2,3,4]); }
+    else { n1=rand(4,7); p1=choice([1.75,2.4,2.95,3.25]); n2=rand(2,4); p2=choice([1.2,1.85,2.6]); }
+    let total = +(n1*p1+(n2?n2*p2:0)).toFixed(2);
+    const a1=choice(GROCERIES), a2=choice(GROCERIES.filter(x=>x!==a1));
+    const q = n2
+      ? {en:`At the market, ${n1} ${a1.en} cost ${money(p1,'en')} each and ${n2} ${a2.en} cost ${money(p2,'en')} each. What is the total?`,
+         fr:`Au marché, ${n1} ${a1.fr} coûtent ${money(p1,'fr')} chacun et ${n2} ${a2.fr} coûtent ${money(p2,'fr')} chacun. Quel est le total?`}
+      : {en:`You buy ${n1} ${a1.en} at ${money(p1,'en')} each. What do they cost altogether?`,
+         fr:`Vous achetez ${n1} ${a1.fr} à ${money(p1,'fr')} chacun. Combien coûtent-ils en tout?`};
+    const a = n2
+      ? {en:`${n1} × ${money(p1,'en')} = ${money(n1*p1,'en')}; ${n2} × ${money(p2,'en')} = ${money(n2*p2,'en')}. Total: ${money(total,'en')}.`,
+         fr:`${n1} × ${money(p1,'fr')} = ${money(n1*p1,'fr')}; ${n2} × ${money(p2,'fr')} = ${money(n2*p2,'fr')}. Total : ${money(total,'fr')}.`}
+      : {en:`${n1} × ${money(p1,'en')} = ${money(total,'en')}.`,
+         fr:`${n1} × ${money(p1,'fr')} = ${money(total,'fr')}.`};
+    return {cat:'money',q,a};
+  }
+
+  if(kind==='tip'){
+    const bill = choice([24,30,36,42,45,48,55,60,72,84]);
+    const pct = choice([15,18,20]);
+    const tip = +(bill*pct/100).toFixed(2), total = +(bill+tip).toFixed(2);
+    return {cat:'money',
+      q:{en:`A restaurant bill comes to ${money(bill,'en')}. You want to leave a ${pct}% tip. How much is the tip, and what do you pay in total?`,
+         fr:`L’addition au restaurant s’élève à ${money(bill,'fr')}. Vous voulez laisser un pourboire de ${pct} %. Quel est le pourboire, et combien payez-vous en tout?`},
+      a:{en:`Tip = ${pct}% of ${money(bill,'en')} = ${money(tip,'en')}. Total = ${money(total,'en')}.`,
+         fr:`Pourboire = ${pct} % de ${money(bill,'fr')} = ${money(tip,'fr')}. Total = ${money(total,'fr')}.`}};
+  }
+
+  if(kind==='split'){
+    const n = rand(2,5);
+    const per = choice([8.5,9,10.5,11,12,14,15,16]);
+    const bill = +(per*n).toFixed(2);
+    return {cat:'money',
+      q:{en:`A dinner bill of ${money(bill,'en')} is shared equally among ${n} people. How much does each person pay?`,
+         fr:`Une addition de ${money(bill,'fr')} est partagée également entre ${n} personnes. Combien chaque personne paie-t-elle?`},
+      a:{en:`${money(bill,'en')} ÷ ${n} = ${money(per,'en')} each.`,
+         fr:`${money(bill,'fr')} ÷ ${n} = ${money(per,'fr')} chacun.`}};
+  }
+
+  if(kind==='tax'){
+    let price,pct;
+    if(level==='gentle'){ price=rand(2,9)*10; pct=10; }
+    else { price=choice([18,24,30,36,45,60,80]); pct=choice([5,10,13,15]); }
+    const tax=+(price*pct/100).toFixed(2), total=+(price+tax).toFixed(2);
+    return {cat:'money',
+      q:{en:`An item costs ${money(price,'en')} before tax. With ${pct}% sales tax added, what is the final price?`,
+         fr:`Un article coûte ${money(price,'fr')} avant taxes. Avec une taxe de ${pct} %, quel est le prix final?`},
+      a:{en:`Tax = ${money(tax,'en')}; final price = ${money(total,'en')}.`,
+         fr:`Taxe = ${money(tax,'fr')}; prix final = ${money(total,'fr')}.`}};
+  }
+
+  // unit: which is the better value?
+  const perA = choice([0.6,0.7,0.8,0.9,1.0,1.1]);
+  let perB = choice([0.6,0.7,0.8,0.9,1.0,1.1]); while(perB===perA) perB=choice([0.6,0.7,0.8,0.9,1.0,1.1]);
+  const sizeA = choice([300,400,500,600]), sizeB = choice([300,400,500,600]);
+  const priceA = +(perA*sizeA/100).toFixed(2), priceB = +(perB*sizeB/100).toFixed(2);
+  const betterEn = perA<perB ? 'the first' : 'the second';
+  const betterFr = perA<perB ? 'le premier' : 'le deuxième';
+  const cheaper = Math.min(perA,perB);
+  return {cat:'money',
+    q:{en:`One package holds ${sizeA} g of coffee for ${money(priceA,'en')}. Another holds ${sizeB} g for ${money(priceB,'en')}. Which is the better value?`,
+       fr:`Un emballage contient ${sizeA} g de café pour ${money(priceA,'fr')}. Un autre contient ${sizeB} g pour ${money(priceB,'fr')}. Lequel est le plus avantageux?`},
+    a:{en:`Per 100 g: ${money(perA,'en')} vs ${money(perB,'en')}. ${betterEn} package is better value, at ${money(cheaper,'en')} per 100 g.`,
+       fr:`Par 100 g : ${money(perA,'fr')} contre ${money(perB,'fr')}. ${betterFr.charAt(0).toUpperCase()+betterFr.slice(1)} emballage est plus avantageux, à ${money(cheaper,'fr')} par 100 g.`}};
+}
+
+/* ============================================================
+   2. Mental-math shortcuts
+   ============================================================ */
+function genShortcuts(level){
+  const kinds = level==='gentle'
+    ? ['times5','times4','sum','times25','times50']
+    : level==='standard'
+      ? ['times25','times99','sum','times5','times50','times15','times4','sq5']
+      : ['times25','times99','sum','times50','times15','sq5','diffsq','times12','times11','times9'];
+  const kind = choice(kinds);
+
+  if(kind==='times25'){
+    const m = level==='gentle'?choice([4,8,12]):level==='standard'?choice([12,16,24,20,32]):choice([16,24,28,36,44]);
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>25 × ${m}</b> in your head. Tip: 25 × 4 = 100, so build it up in fours.`,
+         fr:`Calculez <b>25 × ${m}</b> de tête. Astuce : 25 × 4 = 100, donc procédez par groupes de quatre.`},
+      a:{en:`25 × ${m} = 25 × 4 × ${m/4} = 100 × ${m/4} = <b>${grp(25*m,'en')}</b>.`,
+         fr:`25 × ${m} = 25 × 4 × ${m/4} = 100 × ${m/4} = <b>${grp(25*m,'fr')}</b>.`}};
+  }
+  if(kind==='times99'){
+    const k = level==='sharp'?rand(6,18):rand(3,9);
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>99 × ${k}</b> the quick way. Tip: 99 is just 100 − 1.`,
+         fr:`Calculez <b>99 × ${k}</b> par un raccourci. Astuce : 99, c’est 100 − 1.`},
+      a:{en:`99 × ${k} = (100 × ${k}) − ${k} = ${grp(100*k,'en')} − ${k} = <b>${grp(99*k,'en')}</b>.`,
+         fr:`99 × ${k} = (100 × ${k}) − ${k} = ${grp(100*k,'fr')} − ${k} = <b>${grp(99*k,'fr')}</b>.`}};
+  }
+  if(kind==='times9'){
+    const k = rand(6,19);
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>9 × ${k}</b>. Tip: 9 is 10 − 1.`, fr:`Calculez <b>9 × ${k}</b>. Astuce : 9, c’est 10 − 1.`},
+      a:{en:`9 × ${k} = (10 × ${k}) − ${k} = ${10*k} − ${k} = <b>${9*k}</b>.`,
+         fr:`9 × ${k} = (10 × ${k}) − ${k} = ${10*k} − ${k} = <b>${9*k}</b>.`}};
+  }
+  if(kind==='times11'){
+    const k = rand(13,89);
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>11 × ${k}</b>. Tip: 11 is 10 + 1.`, fr:`Calculez <b>11 × ${k}</b>. Astuce : 11, c’est 10 + 1.`},
+      a:{en:`11 × ${k} = (10 × ${k}) + ${k} = ${10*k} + ${k} = <b>${grp(11*k,'en')}</b>.`,
+         fr:`11 × ${k} = (10 × ${k}) + ${k} = ${10*k} + ${k} = <b>${grp(11*k,'fr')}</b>.`}};
+  }
+  if(kind==='times12'){
+    const k = rand(12,45);
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>12 × ${k}</b>. Tip: 12 is 10 + 2.`, fr:`Calculez <b>12 × ${k}</b>. Astuce : 12, c’est 10 + 2.`},
+      a:{en:`12 × ${k} = (10 × ${k}) + (2 × ${k}) = ${10*k} + ${2*k} = <b>${grp(12*k,'en')}</b>.`,
+         fr:`12 × ${k} = (10 × ${k}) + (2 × ${k}) = ${10*k} + ${2*k} = <b>${grp(12*k,'fr')}</b>.`}};
+  }
+  if(kind==='times5'){
+    const k = level==='gentle'?rand(6,24):rand(24,88);
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>${k} × 5</b>. Tip: multiply by 10, then take half.`,
+         fr:`Calculez <b>${k} × 5</b>. Astuce : multipliez par 10, puis prenez la moitié.`},
+      a:{en:`${k} × 10 = ${10*k}; half of that is <b>${5*k}</b>.`,
+         fr:`${k} × 10 = ${10*k}; la moitié fait <b>${5*k}</b>.`}};
+  }
+  if(kind==='times4'){
+    const k = level==='gentle'?rand(6,19):rand(14,39);
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>${k} × 4</b>. Tip: double it, then double again.`,
+         fr:`Calculez <b>${k} × 4</b>. Astuce : doublez, puis doublez encore.`},
+      a:{en:`Double ${k} is ${2*k}; double again is <b>${4*k}</b>.`,
+         fr:`Le double de ${k} est ${2*k}; encore doublé, cela fait <b>${4*k}</b>.`}};
+  }
+  if(kind==='times50'){
+    const a1 = choice([16,18,22,24,26,14]);
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>50 × ${a1}</b>. Tip: 50 is half of 100.`,
+         fr:`Calculez <b>50 × ${a1}</b>. Astuce : 50, c’est la moitié de 100.`},
+      a:{en:`50 × ${a1} = (100 × ${a1}) ÷ 2 = ${grp(100*a1,'en')} ÷ 2 = <b>${grp(50*a1,'en')}</b>.`,
+         fr:`50 × ${a1} = (100 × ${a1}) ÷ 2 = ${grp(100*a1,'fr')} ÷ 2 = <b>${grp(50*a1,'fr')}</b>.`}};
+  }
+  if(kind==='times15'){
+    const k = choice([12,14,16,18,22,24,26]);
+    const half=k*10/2;
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>${k} × 15</b>. Tip: 15 is 10 + half of 10.`,
+         fr:`Calculez <b>${k} × 15</b>. Astuce : 15, c’est 10 plus la moitié de 10.`},
+      a:{en:`${k} × 10 = ${10*k}; half of that is ${half}; together <b>${15*k}</b>.`,
+         fr:`${k} × 10 = ${10*k}; la moitié fait ${half}; ensemble <b>${15*k}</b>.`}};
+  }
+  if(kind==='sq5'){
+    const t = choice([25,35,45,55,65,75,85]);
+    const d = (t-5)/10; const front = d*(d+1);
+    return {cat:'shortcuts',
+      q:{en:`Square <b>${t}</b> (that is, ${t} × ${t}). Tip: for a number ending in 5, multiply the tens digit by the next number up, then write 25 on the end.`,
+         fr:`Élevez <b>${t}</b> au carré (soit ${t} × ${t}). Astuce : pour un nombre finissant par 5, multipliez le chiffre des dizaines par le suivant, puis ajoutez 25 à la fin.`},
+      a:{en:`${d} × ${d+1} = ${front}, then attach 25: <b>${grp(t*t,'en')}</b>.`,
+         fr:`${d} × ${d+1} = ${front}, puis on ajoute 25 : <b>${grp(t*t,'fr')}</b>.`}};
+  }
+  if(kind==='diffsq'){
+    const base = choice([48,52,47,53,96,104,98]);
+    const round = Math.round(base/10)*10; const a=Math.abs(base-round);
+    return {cat:'shortcuts',
+      q:{en:`Square <b>${base}</b> using a nearby round number. Tip: ${base} = ${round} ${base<round?'−':'+'} ${a}, and (x ${base<round?'−':'+'} ${a})² is close to ${round} × ${base<round?base+ (round-base)*0:'' } …`,
+         fr:`Élevez <b>${base}</b> au carré en vous aidant d’un nombre rond voisin. Astuce : ${base} = ${round} ${base<round?'−':'+'} ${a}.`},
+      a:{en:`${base}² = (${round-a}) × (${round+a}) + ${a}² = ${(round-a)*(round+a)} + ${a*a} = <b>${grp(base*base,'en')}</b>.`,
+         fr:`${base}² = (${round-a}) × (${round+a}) + ${a}² = ${(round-a)*(round+a)} + ${a*a} = <b>${grp(base*base,'fr')}</b>.`}};
+  }
+  // sum 1..n via pairs
+  const n = level==='gentle'?choice([10,10,20]):level==='standard'?choice([20,50,100]):choice([50,100,60,80]);
+  const res=n*(n+1)/2, pairs=n/2;
+  return {cat:'shortcuts',
+    q:{en:`Add up every whole number from 1 to ${n}. Tip: pair the ends — 1 + ${n}, 2 + ${n-1}, and so on.`,
+       fr:`Additionnez tous les nombres entiers de 1 à ${n}. Astuce : associez les extrémités — 1 + ${n}, 2 + ${n-1}, et ainsi de suite.`},
+    a:{en:`Each pair makes ${n+1}, and there are ${pairs} pairs: ${pairs} × ${n+1} = <b>${grp(res,'en')}</b>.`,
+       fr:`Chaque paire donne ${n+1}, et il y a ${pairs} paires : ${pairs} × ${n+1} = <b>${grp(res,'fr')}</b>.`}};
+}
+
+/* ============================================================
+   3. Number patterns ("find the rule")
+   ============================================================ */
+function genPatterns(level){
+  const kinds = level==='gentle'
+    ? ['add','count','double','subtract','halving']
+    : level==='standard'
+      ? ['double','squares','fib','triangular','add','geometric','alt','subtract']
+      : ['squares','fib','triangular','geometric','alt','cubes','primes','powers2'];
+  const kind = choice(kinds);
+  let seq=[], next, ruleEn, ruleFr;
+
+  if(kind==='add'){
+    const start=rand(1,6), step=rand(2,6);
+    for(let i=0;i<5;i++) seq.push(start+i*step);
+    next=start+5*step; ruleEn=`add ${step} each time`; ruleFr=`on ajoute ${step} à chaque fois`;
+  } else if(kind==='count'){
+    const start=rand(2,5);
+    for(let i=0;i<5;i++) seq.push(start*(i+1));
+    next=start*6; ruleEn=`count up in ${start}s`; ruleFr=`on compte par bonds de ${start}`;
+  } else if(kind==='subtract'){
+    const step=rand(3,8), start=step*7+rand(1,5);
+    for(let i=0;i<5;i++) seq.push(start-i*step);
+    next=start-5*step; ruleEn=`subtract ${step} each time`; ruleFr=`on soustrait ${step} à chaque fois`;
+  } else if(kind==='double'){
+    const start=rand(2,5);
+    seq=[start]; for(let i=1;i<5;i++) seq.push(seq[i-1]*2);
+    next=seq[4]*2; ruleEn=`double each time`; ruleFr=`on double à chaque fois`;
+  } else if(kind==='halving'){
+    const start=choice([96,80,64,48,160]);
+    seq=[start]; for(let i=1;i<4;i++) seq.push(seq[i-1]/2);
+    next=seq[3]/2; ruleEn=`halve each time`; ruleFr=`on divise par deux à chaque fois`;
+  } else if(kind==='squares'){
+    for(let i=1;i<=5;i++) seq.push(i*i);
+    next=36; ruleEn=`the square numbers (1×1, 2×2, 3×3 …)`; ruleFr=`les carrés (1×1, 2×2, 3×3 …)`;
+  } else if(kind==='cubes'){
+    for(let i=1;i<=4;i++) seq.push(i*i*i);
+    next=125; ruleEn=`the cube numbers (1×1×1, 2×2×2, 3×3×3 …)`; ruleFr=`les cubes (1×1×1, 2×2×2, 3×3×3 …)`;
+  } else if(kind==='primes'){
+    seq=[2,3,5,7,11]; next=13;
+    ruleEn=`the prime numbers — whole numbers with no divisors but 1 and themselves`;
+    ruleFr=`les nombres premiers — les entiers divisibles seulement par 1 et par eux-mêmes`;
+  } else if(kind==='powers2'){
+    seq=[1,2,4,8,16]; next=32;
+    ruleEn=`the powers of two — double each time`; ruleFr=`les puissances de deux — on double à chaque fois`;
+  } else if(kind==='triangular'){
+    let t=0; for(let i=1;i<=5;i++){t+=i;seq.push(t);}
+    next=seq[4]+6; ruleEn=`the triangular numbers — add 1, then 2, then 3 …`; ruleFr=`les nombres triangulaires — on ajoute 1, puis 2, puis 3 …`;
+  } else if(kind==='fib'){
+    const a=rand(1,3), b=rand(a+1,a+4);
+    seq=[a,b]; for(let i=2;i<6;i++) seq.push(seq[i-1]+seq[i-2]);
+    next=seq[5]; seq=seq.slice(0,5);
+    ruleEn=`each number is the sum of the two before it (Fibonacci style)`; ruleFr=`chaque nombre est la somme des deux précédents (à la Fibonacci)`;
+  } else if(kind==='geometric'){
+    const start=rand(2,4), r=3;
+    seq=[start]; for(let i=1;i<5;i++) seq.push(seq[i-1]*r);
+    next=seq[4]*r; ruleEn=`multiply by 3 each time`; ruleFr=`on multiplie par 3 à chaque fois`;
+  } else { // alt
+    const start=rand(1,4), a=rand(2,4), b=rand(5,7);
+    seq=[start]; for(let i=1;i<5;i++) seq.push(seq[i-1]+(i%2? a : b));
+    next=seq[4]+(5%2? a : b);
+    ruleEn=`add ${a}, then ${b}, over and over`; ruleFr=`on ajoute ${a}, puis ${b}, en alternance`;
+  }
+
+  const L='en';
+  const shown = seq.map(v=>grp(v,'en')).join(', ')+', ___';
+  const shownFr = seq.map(v=>grp(v,'fr')).join(', ')+', ___';
+  return {cat:'patterns',
+    q:{en:`Look at this sequence: <b>${shown}</b><span class="work">What number comes next, and what is the rule?</span>`,
+       fr:`Observez cette suite : <b>${shownFr}</b><span class="work">Quel nombre vient ensuite, et quelle est la règle?</span>`},
+    a:{en:`Next is <b>${grp(next,'en')}</b> — the rule is: ${ruleEn}.`,
+       fr:`Le suivant est <b>${grp(next,'fr')}</b> — la règle : ${ruleFr}.`}};
+}
+
+/* ============================================================
+   4. Adult word problems
+   ============================================================ */
+function genWords(level){
+  const kinds = level==='gentle'
+    ? ['time','between','garden','convert','percent']
+    : ['time','between','recipe','garden','speed','convert','percent','age'];
+  const kind = choice(kinds);
+
+  if(kind==='time'){
+    let startMin, dur;
+    if(level==='gentle'){ startMin = rand(8,10)*60 + choice([0,30]); dur = choice([30,45,60,90]); }
+    else if(level==='standard'){ startMin = rand(8,17)*60 + choice([0,15,30,45]); dur = choice([75,90,105,120,150]); }
+    else { startMin = rand(7,20)*60 + choice([10,20,25,40,50]); dur = choice([95,130,145,175,200]); }
+    const end = startMin+dur;
+    return {cat:'words',
+      q:{en:`A medical appointment starts at ${fmtTime(startMin,'en')} and lasts ${durText(dur,'en')}. At what time does it finish?`,
+         fr:`Un rendez-vous médical commence à ${fmtTime(startMin,'fr')} et dure ${durText(dur,'fr')}. À quelle heure se termine-t-il?`},
+      a:{en:`It finishes at <b>${fmtTime(end,'en')}</b>.`, fr:`Il se termine à <b>${fmtTime(end,'fr')}</b>.`}};
+  }
+
+  if(kind==='between'){
+    const startMin = rand(7,13)*60 + choice([5,10,20,25,40,50]);
+    const dur = level==='gentle'?choice([40,50,60,75]):choice([65,85,95,110,125]);
+    const end = startMin+dur;
+    return {cat:'words',
+      q:{en:`You leave home at ${fmtTime(startMin,'en')} and arrive at ${fmtTime(end,'en')}. How long did the journey take?`,
+         fr:`Vous quittez la maison à ${fmtTime(startMin,'fr')} et arrivez à ${fmtTime(end,'fr')}. Combien de temps a duré le trajet?`},
+      a:{en:`<b>${durText(dur,'en')}</b>.`, fr:`<b>${durText(dur,'fr')}</b>.`}};
+  }
+
+  if(kind==='recipe'){
+    const ingEn = choice([['flour','cups'],['sugar','cups'],['milk','cups'],['butter','tablespoons']]);
+    const ingFr = {flour:'de farine',sugar:'de sucre',milk:'de lait',butter:'de beurre'}[ingEn[0]];
+    const nameFr = {flour:'farine',sugar:'sucre',milk:'lait',butter:'beurre'}[ingEn[0]];
+    const unitEn = ingEn[1], unitFr = ingEn[0]==='butter'?'cuillères à soupe':'tasses';
+    let baseServes, want, baseAmt;
+    if(level==='standard'){ baseServes=4; want=6; baseAmt=choice([2,3,1.5]); }
+    else { baseServes=6; want=choice([4,9,15]); baseAmt=choice([3,4,2.5]); }
+    const scaled = +(baseAmt*want/baseServes).toFixed(2);
+    return {cat:'words',
+      q:{en:`A recipe for ${baseServes} people uses ${num(baseAmt,'en')} ${unitEn} of ${ingEn[0]}. How much ${ingEn[0]} do you need to serve ${want} people?`,
+         fr:`Une recette pour ${baseServes} personnes utilise ${num(baseAmt,'fr')} ${unitFr} ${ingFr}. Quelle quantité de ${nameFr} faut-il pour servir ${want} personnes?`},
+      a:{en:`Scale by ${want}/${baseServes}: ${num(baseAmt,'en')} × ${want} ÷ ${baseServes} = <b>${num(scaled,'en')} ${unitEn}</b>.`,
+         fr:`On multiplie par ${want}/${baseServes} : ${num(baseAmt,'fr')} × ${want} ÷ ${baseServes} = <b>${num(scaled,'fr')} ${unitFr}</b>.`}};
+  }
+
+  if(kind==='garden'){
+    let L,W;
+    if(level==='gentle'){ L=rand(3,6); W=rand(2,4); }
+    else if(level==='standard'){ L=rand(5,12); W=rand(3,8); }
+    else { L=rand(8,18); W=rand(4,13); }
+    const area=L*W, per=2*(L+W);
+    const askBoth = level!=='gentle';
+    return {cat:'words',
+      q:{en:`A rectangular vegetable garden measures ${L} m by ${W} m. What is its area${askBoth?', and how much fencing would go all the way around it':''}?`,
+         fr:`Un potager rectangulaire mesure ${L} m sur ${W} m. Quelle est son aire${askBoth?', et quelle longueur de clôture en ferait tout le tour':''}?`},
+      a:{en:`Area = ${L} × ${W} = <b>${area} m²</b>.${askBoth?` Perimeter = 2 × (${L} + ${W}) = <b>${per} m</b> of fencing.`:''}`,
+         fr:`Aire = ${L} × ${W} = <b>${area} m²</b>.${askBoth?` Périmètre = 2 × (${L} + ${W}) = <b>${per} m</b> de clôture.`:''}`}};
+  }
+
+  if(kind==='speed'){
+    if(Math.random()<0.5){
+      const S=choice([60,70,80,90]), t=choice([2,3,4]); const D=S*t;
+      return {cat:'words',
+        q:{en:`A car travels ${grp(D,'en')} km at a steady ${S} km/h. How long does the trip take?`,
+           fr:`Une voiture parcourt ${grp(D,'fr')} km à une vitesse constante de ${S} km/h. Combien de temps dure le trajet?`},
+        a:{en:`${grp(D,'en')} ÷ ${S} = <b>${t} hours</b>.`, fr:`${grp(D,'fr')} ÷ ${S} = <b>${t} heures</b>.`}};
+    }
+    const t=choice([30,40,45,90]), D=choice([2,3,4,6]); const perHr=+(D*60/t).toFixed(1);
+    return {cat:'words',
+      q:{en:`You walk ${D} km in ${t} minutes. At that pace, how far would you walk in one hour?`,
+         fr:`Vous marchez ${D} km en ${t} minutes. À ce rythme, quelle distance parcourriez-vous en une heure?`},
+      a:{en:`In 60 minutes: ${D} × 60 ÷ ${t} = <b>${num(perHr,'en')} km</b>.`,
+         fr:`En 60 minutes : ${D} × 60 ÷ ${t} = <b>${num(perHr,'fr')} km</b>.`}};
+  }
+
+  if(kind==='convert'){
+    const which = choice(['ml','km','kg','min']);
+    if(which==='ml'){ const cups=choice([2,3,4]); const ml=cups*250;
+      return {cat:'words',
+        q:{en:`A recipe calls for ${ml} ml of milk. About how many cups is that, if one cup is 250 ml?`,
+           fr:`Une recette demande ${ml} ml de lait. Cela fait combien de tasses, si une tasse vaut 250 ml?`},
+        a:{en:`${ml} ÷ 250 = <b>${cups} cups</b>.`, fr:`${ml} ÷ 250 = <b>${cups} tasses</b>.`}}; }
+    if(which==='km'){ const km=choice([1.5,2.4,3.2,4.5]);
+      return {cat:'words',
+        q:{en:`A walking path is ${num(km,'en')} km long. How many metres is that?`,
+           fr:`Un sentier fait ${num(km,'fr')} km de long. Combien de mètres cela représente-t-il?`},
+        a:{en:`${num(km,'en')} × 1000 = <b>${grp(km*1000,'en')} m</b>.`, fr:`${num(km,'fr')} × 1000 = <b>${grp(km*1000,'fr')} m</b>.`}}; }
+    if(which==='kg'){ const kg=choice([1.5,2.5,3.2,0.75]);
+      return {cat:'words',
+        q:{en:`A parcel weighs ${num(kg,'en')} kg. How many grams is that?`,
+           fr:`Un colis pèse ${num(kg,'fr')} kg. Combien de grammes cela fait-il?`},
+        a:{en:`${num(kg,'en')} × 1000 = <b>${grp(kg*1000,'en')} g</b>.`, fr:`${num(kg,'fr')} × 1000 = <b>${grp(kg*1000,'fr')} g</b>.`}}; }
+    const mins=choice([90,135,145,200,75]);
+    return {cat:'words',
+      q:{en:`A concert lasts ${mins} minutes. How many hours and minutes is that?`,
+         fr:`Un concert dure ${mins} minutes. Cela fait combien d’heures et de minutes?`},
+      a:{en:`${mins} minutes = <b>${Math.floor(mins/60)} h ${pad2(mins%60)} min</b>.`,
+         fr:`${mins} minutes = <b>${Math.floor(mins/60)} h ${pad2(mins%60)} min</b>.`}};
+  }
+
+  // age (ratio) — kept relationship-neutral in phrasing
+  const k=choice([2,3,4]); const g=rand(9,16); const S=g*(k+1);
+  return {cat:'words',
+    q:{en:`A grandparent is ${k} times as old as their grandchild. Together their ages add up to ${S}. How old is each of them?`,
+       fr:`Un grand-parent a ${k} fois l’âge de son petit-enfant. Ensemble, leurs âges totalisent ${S}. Quel âge a chacun?`},
+    a:{en:`The grandchild is ${g} (since ${g} × ${k+1} = ${S}), and the grandparent is <b>${g*k}</b>.`,
+       fr:`Le petit-enfant a ${g} ans (car ${g} × ${k+1} = ${S}), et le grand-parent a <b>${g*k}</b> ans.`}};
+}
+
+/* ============================================================
+   5. Estimation (no single exact answer)
+   ============================================================ */
+const ESTIMATION = [
+  {q:{en:`Without working it out exactly, about how many minutes are there in a full day?`,
+      fr:`Sans faire le calcul exact, environ combien de minutes compte une journée entière?`},
+   a:{en:`Reason: 24 × 60 ≈ <b>1,440 minutes</b>. Any estimate near 1,400–1,500 is excellent.`,
+      fr:`Raisonnement : 24 × 60 ≈ <b>1 440 minutes</b>. Une estimation autour de 1 400 à 1 500 est excellente.`}},
+  {q:{en:`About how many seconds are there in one hour?`, fr:`Environ combien de secondes compte une heure?`},
+   a:{en:`Reason: 60 × 60 = <b>3,600 seconds</b>.`, fr:`Raisonnement : 60 × 60 = <b>3 600 secondes</b>.`}},
+  {q:{en:`If a resting heart beats about 70 times a minute, roughly how many beats in one hour?`,
+      fr:`Si un cœur au repos bat environ 70 fois par minute, à peu près combien de battements en une heure?`},
+   a:{en:`Reason: 70 × 60 ≈ <b>4,200 beats</b>. Anywhere near 4,000–4,500 is fine.`,
+      fr:`Raisonnement : 70 × 60 ≈ <b>4 200 battements</b>. Une valeur proche de 4 000 à 4 500 convient.`}},
+  {q:{en:`Roughly how many times does a resting heart beat in a whole day?`,
+      fr:`À peu près combien de fois un cœur au repos bat-il en une journée entière?`},
+   a:{en:`Reason: about 70 × 60 × 24 ≈ <b>100,000 beats</b>. Anything near 90,000–110,000 is excellent.`,
+      fr:`Raisonnement : environ 70 × 60 × 24 ≈ <b>100 000 battements</b>. Autour de 90 000 à 110 000, c’est excellent.`}},
+  {q:{en:`About how many times might a person blink in a single hour of being awake?`,
+      fr:`Environ combien de fois une personne cligne-t-elle des yeux en une heure d’éveil?`},
+   a:{en:`Reason: roughly 15–20 blinks a minute × 60 ≈ <b>900–1,200 blinks</b>. No single exact number.`,
+      fr:`Raisonnement : environ 15 à 20 clignements par minute × 60 ≈ <b>900 à 1 200 clignements</b>. Pas de réponse unique.`}},
+  {q:{en:`Taking a comfortable breath about 15 times a minute, roughly how many breaths in a day?`,
+      fr:`En respirant confortablement environ 15 fois par minute, à peu près combien de respirations en une journée?`},
+   a:{en:`Reason: 15 × 60 × 24 ≈ <b>21,600 breaths</b>. Anything around 20,000 shows good reasoning.`,
+      fr:`Raisonnement : 15 × 60 × 24 ≈ <b>21 600 respirations</b>. Autour de 20 000, le raisonnement est bon.`}},
+  {q:{en:`If a comfortable walking pace is about 100 steps a minute, roughly how many steps in a half-hour stroll?`,
+      fr:`Si un rythme de marche confortable est d’environ 100 pas par minute, à peu près combien de pas en une promenade d’une demi-heure?`},
+   a:{en:`Reason: 100 × 30 ≈ <b>3,000 steps</b>. Between 2,500 and 3,500 is very reasonable.`,
+      fr:`Raisonnement : 100 × 30 ≈ <b>3 000 pas</b>. Entre 2 500 et 3 500, c’est très raisonnable.`}},
+  {q:{en:`A paperback page holds roughly 300 words. About how many words are in a 250-page novel?`,
+      fr:`Une page de livre de poche contient environ 300 mots. À peu près combien de mots compte un roman de 250 pages?`},
+   a:{en:`Reason: 300 × 250 ≈ <b>75,000 words</b>. Near 60,000–90,000 is a sound estimate.`,
+      fr:`Raisonnement : 300 × 250 ≈ <b>75 000 mots</b>. Proche de 60 000 à 90 000, l’estimation est solide.`}},
+  {q:{en:`About how many days have you been alive by age 70? (Estimate, don't count.)`,
+      fr:`Environ combien de jours a-t-on vécu à 70 ans? (Estimez, ne comptez pas.)`},
+   a:{en:`Reason: 70 × 365 ≈ <b>25,550 days</b>. Around 25,000 is excellent.`,
+      fr:`Raisonnement : 70 × 365 ≈ <b>25 550 jours</b>. Environ 25 000, c’est excellent.`}},
+  {q:{en:`About how many weeks does a person live in 70 years?`, fr:`Environ combien de semaines vit-on en 70 ans?`},
+   a:{en:`Reason: 70 × 52 ≈ <b>3,640 weeks</b>. Around 3,600 is spot on.`,
+      fr:`Raisonnement : 70 × 52 ≈ <b>3 640 semaines</b>. Autour de 3 600, c’est juste.`}},
+  {q:{en:`Sleeping about 8 hours a night, roughly how many hours of sleep in a year?`,
+      fr:`En dormant environ 8 heures par nuit, à peu près combien d’heures de sommeil en une année?`},
+   a:{en:`Reason: 8 × 365 ≈ <b>2,920 hours</b>. Near 3,000 is a fine estimate.`,
+      fr:`Raisonnement : 8 × 365 ≈ <b>2 920 heures</b>. Proche de 3 000, l’estimation est bonne.`}},
+  {q:{en:`Having three meals a day, roughly how many meals does a person eat in a year?`,
+      fr:`À raison de trois repas par jour, à peu près combien de repas prend-on en une année?`},
+   a:{en:`Reason: 3 × 365 ≈ <b>1,095 meals</b>. Around 1,000 is excellent.`,
+      fr:`Raisonnement : 3 × 365 ≈ <b>1 095 repas</b>. Environ 1 000, c’est excellent.`}},
+  {q:{en:`Drinking about 2 litres of water a day, roughly how many litres in a year?`,
+      fr:`En buvant environ 2 litres d’eau par jour, à peu près combien de litres en une année?`},
+   a:{en:`Reason: 2 × 365 ≈ <b>730 litres</b>.`, fr:`Raisonnement : 2 × 365 ≈ <b>730 litres</b>.`}},
+  {q:{en:`How many seconds are there in a full day, roughly?`, fr:`Combien de secondes compte une journée entière, à peu près?`},
+   a:{en:`Reason: 60 × 60 × 24 = <b>86,400 seconds</b>. Near 86,000 is excellent.`,
+      fr:`Raisonnement : 60 × 60 × 24 = <b>86 400 secondes</b>. Proche de 86 000, c’est excellent.`}},
+  {q:{en:`Reading at about one page a minute, roughly how many pages in a two-hour reading session?`,
+      fr:`En lisant environ une page par minute, à peu près combien de pages en deux heures de lecture?`},
+   a:{en:`Reason: 2 × 60 = <b>about 120 pages</b>.`, fr:`Raisonnement : 2 × 60 = <b>environ 120 pages</b>.`}}
+];
+let _estIdx = [];
+function genEstimation(level){
+  if(_estIdx.length===0) _estIdx = shuffle(ESTIMATION.map((_,i)=>i));
+  const e = ESTIMATION[_estIdx.pop()];
+  return {cat:'estimation',
+    q:{en:e.q.en+`<span class="work">There is no single exact answer — the goal is a sensible estimate and the reasoning behind it.</span>`,
+       fr:e.q.fr+`<span class="work">Il n’y a pas de réponse unique — le but est une estimation sensée et le raisonnement qui la soutient.</span>`},
+    a:e.a};
+}
+
+/* ============================================================
+   6. Logic puzzles (curated fixed banks + a couple templated)
+   ============================================================ */
+function msqTable(grid){
+  let h='<table class="msq"><tbody>';
+  for(let r=0;r<3;r++){ h+='<tr>'; for(let c=0;c<3;c++){ const v=grid[r][c]; h+= v==null?'<td class="blank">?</td>':`<td>${v}</td>`; } h+='</tr>'; }
+  return h+'</tbody></table>';
+}
+// All eight orientations of the order-3 magic square (every line sums to 15)
+const MAGIC = [
+  {sol:[[8,1,6],[3,5,7],[4,9,2]], blanks:[[0,1],[1,0],[1,2],[2,1]]},
+  {sol:[[4,3,8],[9,5,1],[2,7,6]], blanks:[[0,0],[1,0],[2,2],[0,2]]},
+  {sol:[[2,9,4],[7,5,3],[6,1,8]], blanks:[[0,1],[1,1],[2,1]]},
+  {sol:[[6,7,2],[1,5,9],[8,3,4]], blanks:[[0,0],[0,2],[2,0],[2,2]]},
+  {sol:[[6,1,8],[7,5,3],[2,9,4]], blanks:[[0,1],[1,0],[1,2],[2,1]]},
+  {sol:[[8,3,4],[1,5,9],[6,7,2]], blanks:[[1,0],[1,2],[0,2],[2,0]]},
+  {sol:[[2,7,6],[9,5,1],[4,3,8]], blanks:[[0,1],[1,1],[2,1]]},
+  {sol:[[4,9,2],[3,5,7],[8,1,6]], blanks:[[0,0],[0,2],[2,0],[2,2]]}
+];
+const HANDSHAKE = [{n:4},{n:5},{n:6},{n:7},{n:8},{n:9},{n:10},{n:12}];
+const TEASERS = [
+  {q:{en:`A bat and a ball cost $1.10 together. The bat costs $1.00 more than the ball. How much is the ball?`,
+      fr:`Une batte et une balle coûtent 1,10 $ ensemble. La batte coûte 1,00 $ de plus que la balle. Combien coûte la balle?`},
+   a:{en:`<b>$0.05.</b> The ball is 5¢ and the bat is $1.05 — a dollar more — which adds to $1.10.`,
+      fr:`<b>0,05 $.</b> La balle vaut 5 ¢ et la batte 1,05 $ — un dollar de plus — ce qui fait 1,10 $.`}},
+  {q:{en:`If 2 cats can catch 2 mice in 2 minutes, how many cats are needed to catch 100 mice in 100 minutes?`,
+      fr:`Si 2 chats attrapent 2 souris en 2 minutes, combien de chats faut-il pour attraper 100 souris en 100 minutes?`},
+   a:{en:`<b>Still just 2 cats.</b> One cat catches one mouse in 2 minutes, so in 100 minutes each cat catches 50 — two cats catch 100.`,
+      fr:`<b>Toujours 2 chats.</b> Un chat attrape une souris en 2 minutes, donc en 100 minutes chaque chat en attrape 50 — deux chats en attrapent 100.`}},
+  {q:{en:`How many small squares are there altogether on a 3 × 3 grid, counting the little 1×1 squares, the 2×2 squares, and the whole 3×3 square?`,
+      fr:`Combien de carrés compte-t-on en tout sur une grille 3 × 3, en comptant les petits carrés 1×1, les carrés 2×2 et le grand carré 3×3?`},
+   a:{en:`<b>14.</b> Nine 1×1 squares, four 2×2 squares, and one 3×3 square: 9 + 4 + 1 = 14.`,
+      fr:`<b>14.</b> Neuf carrés 1×1, quatre carrés 2×2 et un carré 3×3 : 9 + 4 + 1 = 14.`}},
+  {q:{en:`In 12 hours, how many times do the hour hand and the minute hand of a clock line up exactly on top of each other?`,
+      fr:`En 12 heures, combien de fois l’aiguille des heures et celle des minutes d’une horloge se superposent-elles exactement?`},
+   a:{en:`<b>11 times.</b> The hands meet a little after each hour, but around 11 o’clock they only catch up at 12 — so 11, not 12.`,
+      fr:`<b>11 fois.</b> Les aiguilles se rejoignent un peu après chaque heure, mais vers 11 h elles ne se rattrapent qu’à midi — donc 11, et non 12.`}},
+  {q:{en:`A clock takes 6 seconds to strike 4 o’clock (four chimes). How long does it take to strike 8 o’clock?`,
+      fr:`Une horloge met 6 secondes pour sonner 4 heures (quatre coups). Combien de temps met-elle pour sonner 8 heures?`},
+   a:{en:`<b>14 seconds.</b> Four chimes have 3 gaps = 6 s, so each gap is 2 s. Eight chimes have 7 gaps: 7 × 2 = 14 s.`,
+      fr:`<b>14 secondes.</b> Quatre coups comptent 3 intervalles = 6 s, donc chaque intervalle dure 2 s. Huit coups ont 7 intervalles : 7 × 2 = 14 s.`}},
+  {q:{en:`You have a 5-litre jug and a 3-litre jug and a tap. How can you measure out exactly 4 litres?`,
+      fr:`Vous avez un pichet de 5 litres, un pichet de 3 litres et un robinet. Comment mesurer exactement 4 litres?`},
+   a:{en:`Fill the 5 L and pour into the 3 L (2 L left in the big jug). Empty the 3 L, pour the 2 L into it. Refill the 5 L and top up the 3 L — that needs 1 L, leaving <b>exactly 4 L</b> in the big jug.`,
+      fr:`Remplissez le 5 L et versez dans le 3 L (il reste 2 L dans le grand). Videz le 3 L, versez-y les 2 L. Remplissez de nouveau le 5 L et complétez le 3 L — il faut 1 L, laissant <b>exactement 4 L</b> dans le grand pichet.`}},
+  {q:{en:`A farmer must ferry a wolf, a goat, and a cabbage across a river in a boat that holds only one at a time. The wolf can’t be left with the goat, nor the goat with the cabbage. What is the order?`,
+      fr:`Un fermier doit faire traverser une rivière à un loup, une chèvre et un chou dans une barque ne pouvant porter qu’un seul à la fois. Le loup ne peut rester seul avec la chèvre, ni la chèvre avec le chou. Quel est l’ordre?`},
+   a:{en:`Take the goat over; return alone. Take the wolf over; bring the goat back. Take the cabbage over; return alone. Finally take the goat over. <b>All safe.</b>`,
+      fr:`Emmenez la chèvre; revenez seul. Emmenez le loup; ramenez la chèvre. Emmenez le chou; revenez seul. Emmenez enfin la chèvre. <b>Tous sains et saufs.</b>`}}
+];
+let _magicIdx=[], _hsIdx=[], _teaseIdx=[];
+function genLogic(level){
+  const kinds = level==='gentle' ? ['handshake','dayweek','magic'] : ['magic','handshake','dayweek','teaser'];
+  const kind = choice(kinds);
+
+  if(kind==='magic'){
+    if(_magicIdx.length===0) _magicIdx = shuffle(MAGIC.map((_,i)=>i));
+    const m = MAGIC[_magicIdx.pop()];
+    const grid = m.sol.map(r=>r.slice());
+    m.blanks.forEach(([r,c])=>{grid[r][c]=null;});
+    return {cat:'logic',
+      q:{en:`Fill in the missing numbers so that each row, each column, and both diagonals add up to 15. Use the digits 1–9, each exactly once.`+msqTable(grid),
+         fr:`Complétez les cases manquantes pour que chaque ligne, chaque colonne et les deux diagonales totalisent 15. Utilisez les chiffres de 1 à 9, chacun une seule fois.`+msqTable(grid)},
+      a:{en:`The completed square:`+msqTable(m.sol), fr:`Le carré complété :`+msqTable(m.sol)}};
+  }
+  if(kind==='handshake'){
+    if(_hsIdx.length===0) _hsIdx = shuffle(HANDSHAKE.map((_,i)=>i));
+    const n = HANDSHAKE[_hsIdx.pop()].n; const res=n*(n-1)/2;
+    return {cat:'logic',
+      q:{en:`${n} people meet at a gathering, and every person shakes hands once with every other person. How many handshakes take place in all?`,
+         fr:`${n} personnes se rencontrent lors d’une réunion, et chacune serre la main une seule fois à chacune des autres. Combien de poignées de main ont lieu en tout?`},
+      a:{en:`Each of the ${n} people shakes ${n-1} hands, which counts every handshake twice: ${n} × ${n-1} ÷ 2 = <b>${res}</b>.`,
+         fr:`Chacune des ${n} personnes serre ${n-1} mains, ce qui compte chaque poignée deux fois : ${n} × ${n-1} ÷ 2 = <b>${res}</b>.`}};
+  }
+  if(kind==='dayweek'){
+    const start=rand(0,6), N=choice([10,20,30,45,50,100]); const res=(start+N)%7; const r=N%7;
+    return {cat:'logic',
+      q:{en:`If today is ${DAYS.en[start]}, what day of the week will it be in ${N} days?`,
+         fr:`Si aujourd’hui est ${DAYS.fr[start]}, quel jour de la semaine serons-nous dans ${N} jours?`},
+      a:{en:`${N} ÷ 7 leaves ${r}; counting ${r} day${r===1?'':'s'} on from ${DAYS.en[start]} gives <b>${DAYS.en[res]}</b>.`,
+         fr:`${N} ÷ 7 laisse ${r}; en comptant ${r} jour${r===1?'':'s'} après ${DAYS.fr[start]}, on obtient <b>${DAYS.fr[res]}</b>.`}};
+  }
+  // teaser
+  if(_teaseIdx.length===0) _teaseIdx = shuffle(TEASERS.map((_,i)=>i));
+  const t = TEASERS[_teaseIdx.pop()];
+  return {cat:'logic', q:t.q, a:t.a};
+}
+
+/* ============================================================
+   7. Geometry
+   ============================================================ */
+function genGeometry(level){
+  const kinds = level==='gentle'
+    ? ['rect','square','triAngles','straight','box']
+    : level==='standard'
+      ? ['rect','triArea','triAngles','straight','complement','circleC','box']
+      : ['triArea','circleC','circleA','pythag','box','point','triAngles'];
+  const kind = choice(kinds);
+
+  if(kind==='rect'){
+    const Lg=rand(4,15), Wd=rand(3,10);
+    return {cat:'geometry',
+      q:{en:`A rectangle is ${Lg} cm long and ${Wd} cm wide. Find its area and its perimeter.`,
+         fr:`Un rectangle mesure ${Lg} cm de long et ${Wd} cm de large. Trouvez son aire et son périmètre.`},
+      a:{en:`Area = ${Lg} × ${Wd} = <b>${Lg*Wd} cm²</b>. Perimeter = 2 × (${Lg} + ${Wd}) = <b>${2*(Lg+Wd)} cm</b>.`,
+         fr:`Aire = ${Lg} × ${Wd} = <b>${Lg*Wd} cm²</b>. Périmètre = 2 × (${Lg} + ${Wd}) = <b>${2*(Lg+Wd)} cm</b>.`}};
+  }
+  if(kind==='square'){
+    const s=rand(4,14);
+    return {cat:'geometry',
+      q:{en:`A square has sides of ${s} cm. Find its area and its perimeter.`,
+         fr:`Un carré a des côtés de ${s} cm. Trouvez son aire et son périmètre.`},
+      a:{en:`Area = ${s} × ${s} = <b>${s*s} cm²</b>. Perimeter = 4 × ${s} = <b>${4*s} cm</b>.`,
+         fr:`Aire = ${s} × ${s} = <b>${s*s} cm²</b>. Périmètre = 4 × ${s} = <b>${4*s} cm</b>.`}};
+  }
+  if(kind==='triArea'){
+    const b=choice([4,6,8,10,12,14]), h=choice([3,5,6,7,9,11]);
+    return {cat:'geometry',
+      q:{en:`A triangle has a base of ${b} cm and a height of ${h} cm. What is its area?`,
+         fr:`Un triangle a une base de ${b} cm et une hauteur de ${h} cm. Quelle est son aire?`},
+      a:{en:`Area = ½ × ${b} × ${h} = <b>${num(b*h/2,'en')} cm²</b>.`,
+         fr:`Aire = ½ × ${b} × ${h} = <b>${num(b*h/2,'fr')} cm²</b>.`}};
+  }
+  if(kind==='triAngles'){
+    let a1=rand(40,80), a2=rand(40,80); while(a1+a2>160){a1=rand(40,80);a2=rand(40,80);}
+    return {cat:'geometry',
+      q:{en:`Two angles of a triangle measure ${a1}° and ${a2}°. What is the third angle?`,
+         fr:`Deux angles d’un triangle mesurent ${a1}° et ${a2}°. Quel est le troisième angle?`},
+      a:{en:`The three angles add to 180°: 180 − ${a1} − ${a2} = <b>${180-a1-a2}°</b>.`,
+         fr:`La somme des trois angles fait 180° : 180 − ${a1} − ${a2} = <b>${180-a1-a2}°</b>.`}};
+  }
+  if(kind==='straight'){
+    const one=rand(30,150);
+    return {cat:'geometry',
+      q:{en:`Two angles sit together on a straight line. One measures ${one}°. What is the other?`,
+         fr:`Deux angles se trouvent ensemble sur une ligne droite. L’un mesure ${one}°. Quel est l’autre?`},
+      a:{en:`Angles on a straight line add to 180°: 180 − ${one} = <b>${180-one}°</b>.`,
+         fr:`Les angles sur une ligne droite totalisent 180° : 180 − ${one} = <b>${180-one}°</b>.`}};
+  }
+  if(kind==='complement'){
+    const one=rand(20,70);
+    return {cat:'geometry',
+      q:{en:`Two angles together form a right angle. One measures ${one}°. What is the other?`,
+         fr:`Deux angles forment ensemble un angle droit. L’un mesure ${one}°. Quel est l’autre?`},
+      a:{en:`A right angle is 90°: 90 − ${one} = <b>${90-one}°</b>.`,
+         fr:`Un angle droit vaut 90° : 90 − ${one} = <b>${90-one}°</b>.`}};
+  }
+  if(kind==='point'){
+    let a1=rand(60,150), a2=rand(60,150); while(a1+a2>300){a1=rand(60,150);a2=rand(60,150);}
+    return {cat:'geometry',
+      q:{en:`Three angles meet at a point. Two of them measure ${a1}° and ${a2}°. What is the third?`,
+         fr:`Trois angles se rejoignent en un point. Deux d’entre eux mesurent ${a1}° et ${a2}°. Quel est le troisième?`},
+      a:{en:`Angles around a point add to 360°: 360 − ${a1} − ${a2} = <b>${360-a1-a2}°</b>.`,
+         fr:`Les angles autour d’un point totalisent 360° : 360 − ${a1} − ${a2} = <b>${360-a1-a2}°</b>.`}};
+  }
+  if(kind==='circleC'){
+    const r=choice([3,4,5,6,7,10]); const C=+(2*3.14*r).toFixed(2);
+    return {cat:'geometry',
+      q:{en:`A circle has a radius of ${r} cm. What is its circumference? (Use π ≈ 3.14.)`,
+         fr:`Un cercle a un rayon de ${r} cm. Quelle est sa circonférence? (Prenez π ≈ 3,14.)`},
+      a:{en:`Circumference = 2 × 3.14 × ${r} = <b>${num(C,'en')} cm</b>.`,
+         fr:`Circonférence = 2 × 3,14 × ${r} = <b>${num(C,'fr')} cm</b>.`}};
+  }
+  if(kind==='circleA'){
+    const r=choice([2,3,4,5,6,10]); const A=+(3.14*r*r).toFixed(2);
+    return {cat:'geometry',
+      q:{en:`A circle has a radius of ${r} cm. What is its area? (Use π ≈ 3.14.)`,
+         fr:`Un cercle a un rayon de ${r} cm. Quelle est son aire? (Prenez π ≈ 3,14.)`},
+      a:{en:`Area = 3.14 × ${r}² = 3.14 × ${r*r} = <b>${num(A,'en')} cm²</b>.`,
+         fr:`Aire = 3,14 × ${r}² = 3,14 × ${r*r} = <b>${num(A,'fr')} cm²</b>.`}};
+  }
+  if(kind==='pythag'){
+    const t=choice([[3,4,5],[6,8,10],[5,12,13],[8,15,17],[9,12,15],[7,24,25]]);
+    return {cat:'geometry',
+      q:{en:`A right-angled triangle has its two shorter sides measuring ${t[0]} cm and ${t[1]} cm. How long is the longest side (the hypotenuse)?`,
+         fr:`Un triangle rectangle a ses deux côtés les plus courts qui mesurent ${t[0]} cm et ${t[1]} cm. Quelle est la longueur du plus long côté (l’hypoténuse)?`},
+      a:{en:`${t[0]}² + ${t[1]}² = ${t[0]*t[0]} + ${t[1]*t[1]} = ${t[0]*t[0]+t[1]*t[1]}, and its square root is <b>${t[2]} cm</b>.`,
+         fr:`${t[0]}² + ${t[1]}² = ${t[0]*t[0]} + ${t[1]*t[1]} = ${t[0]*t[0]+t[1]*t[1]}, et sa racine carrée est <b>${t[2]} cm</b>.`}};
+  }
+  // box volume
+  const l=rand(2,8), w=rand(2,6), h=rand(2,5);
+  return {cat:'geometry',
+    q:{en:`A rectangular box measures ${l} cm by ${w} cm by ${h} cm. What is its volume?`,
+       fr:`Une boîte rectangulaire mesure ${l} cm sur ${w} cm sur ${h} cm. Quel est son volume?`},
+    a:{en:`Volume = ${l} × ${w} × ${h} = <b>${l*w*h} cm³</b>.`,
+       fr:`Volume = ${l} × ${w} × ${h} = <b>${l*w*h} cm³</b>.`}};
+}
+
+/* ============================================================
+   8. Algebra
+   ============================================================ */
+function genAlgebra(level){
+  const kinds = level==='gentle'
+    ? ['add','sub','mul','subst','word']
+    : level==='standard'
+      ? ['twostep','subst','nth','word','simplify','mul']
+      : ['twostep','bothsides','nth','simplify','word','subst'];
+  const kind = choice(kinds);
+
+  if(kind==='add'){
+    const x=rand(2,20), a=rand(2,20), b=x+a;
+    return {cat:'algebra',
+      q:{en:`Solve for x:  <b>x + ${a} = ${b}</b>`, fr:`Résolvez pour x :  <b>x + ${a} = ${b}</b>`},
+      a:{en:`Subtract ${a} from both sides: x = ${b} − ${a} = <b>${x}</b>.`,
+         fr:`Soustrayez ${a} des deux côtés : x = ${b} − ${a} = <b>${x}</b>.`}};
+  }
+  if(kind==='sub'){
+    const x=rand(6,30), a=rand(2,9), b=x-a;
+    return {cat:'algebra',
+      q:{en:`Solve for x:  <b>x − ${a} = ${b}</b>`, fr:`Résolvez pour x :  <b>x − ${a} = ${b}</b>`},
+      a:{en:`Add ${a} to both sides: x = ${b} + ${a} = <b>${x}</b>.`,
+         fr:`Ajoutez ${a} aux deux côtés : x = ${b} + ${a} = <b>${x}</b>.`}};
+  }
+  if(kind==='mul'){
+    const a=rand(2,9), x=rand(2,12), b=a*x;
+    return {cat:'algebra',
+      q:{en:`Solve for x:  <b>${a}x = ${b}</b>`, fr:`Résolvez pour x :  <b>${a}x = ${b}</b>`},
+      a:{en:`Divide both sides by ${a}: x = ${b} ÷ ${a} = <b>${x}</b>.`,
+         fr:`Divisez les deux côtés par ${a} : x = ${b} ÷ ${a} = <b>${x}</b>.`}};
+  }
+  if(kind==='twostep'){
+    const a=rand(2,6), x=rand(2,10), b=rand(1,12), c=a*x+b;
+    return {cat:'algebra',
+      q:{en:`Solve for x:  <b>${a}x + ${b} = ${c}</b>`, fr:`Résolvez pour x :  <b>${a}x + ${b} = ${c}</b>`},
+      a:{en:`Subtract ${b}: ${a}x = ${c-b}. Divide by ${a}: x = <b>${x}</b>.`,
+         fr:`Soustrayez ${b} : ${a}x = ${c-b}. Divisez par ${a} : x = <b>${x}</b>.`}};
+  }
+  if(kind==='bothsides'){
+    const c=rand(1,3), a=c+rand(2,5), x=rand(2,9), b=rand(1,10), d=(a-c)*x+b;
+    return {cat:'algebra',
+      q:{en:`Solve for x:  <b>${a}x + ${b} = ${c}x + ${d}</b>`, fr:`Résolvez pour x :  <b>${a}x + ${b} = ${c}x + ${d}</b>`},
+      a:{en:`Take ${c}x from both sides: ${a-c}x + ${b} = ${d}. Then ${a-c}x = ${d-b}, so x = <b>${x}</b>.`,
+         fr:`Retirez ${c}x des deux côtés : ${a-c}x + ${b} = ${d}. Puis ${a-c}x = ${d-b}, donc x = <b>${x}</b>.`}};
+  }
+  if(kind==='subst'){
+    const v=rand(2,9), a=rand(2,6), b=rand(1,12);
+    return {cat:'algebra',
+      q:{en:`If x = ${v}, what is the value of  <b>${a}x + ${b}</b>?`, fr:`Si x = ${v}, quelle est la valeur de  <b>${a}x + ${b}</b>?`},
+      a:{en:`${a} × ${v} + ${b} = ${a*v} + ${b} = <b>${a*v+b}</b>.`,
+         fr:`${a} × ${v} + ${b} = ${a*v} + ${b} = <b>${a*v+b}</b>.`}};
+  }
+  if(kind==='nth'){
+    const s=rand(1,6), d=rand(2,6), n=choice([8,10,12,20]);
+    const seq=[s,s+d,s+2*d,s+3*d].join(', '); const val=s+(n-1)*d;
+    return {cat:'algebra',
+      q:{en:`A sequence begins ${seq}, … and goes up by ${d} each time. Using the rule “first term + (position − 1) × step”, what is the ${n}th term?`,
+         fr:`Une suite commence par ${seq}, … et augmente de ${d} à chaque fois. Avec la règle « premier terme + (position − 1) × pas », quel est le ${n}e terme?`},
+      a:{en:`${s} + (${n} − 1) × ${d} = ${s} + ${(n-1)*d} = <b>${val}</b>.`,
+         fr:`${s} + (${n} − 1) × ${d} = ${s} + ${(n-1)*d} = <b>${val}</b>.`}};
+  }
+  if(kind==='simplify'){
+    const a=rand(2,6), cc=rand(2,6), b=rand(1,9), dd=rand(1,9);
+    return {cat:'algebra',
+      q:{en:`Simplify by collecting like terms:  <b>${a}x + ${b} + ${cc}x + ${dd}</b>`,
+         fr:`Simplifiez en regroupant les termes semblables :  <b>${a}x + ${b} + ${cc}x + ${dd}</b>`},
+      a:{en:`(${a} + ${cc})x + (${b} + ${dd}) = <b>${a+cc}x + ${b+dd}</b>.`,
+         fr:`(${a} + ${cc})x + (${b} + ${dd}) = <b>${a+cc}x + ${b+dd}</b>.`}};
+  }
+  // word → equation
+  const x=rand(2,12), a=rand(2,6), b=rand(1,15), c=a*x+b;
+  return {cat:'algebra',
+    q:{en:`I think of a number, multiply it by ${a}, then add ${b}, and the result is ${c}. What number did I start with?`,
+       fr:`Je pense à un nombre, je le multiplie par ${a}, puis j’ajoute ${b}, et le résultat est ${c}. Quel nombre ai-je choisi au départ?`},
+    a:{en:`Work backwards: (${c} − ${b}) ÷ ${a} = ${c-b} ÷ ${a} = <b>${x}</b>.`,
+       fr:`À rebours : (${c} − ${b}) ÷ ${a} = ${c-b} ÷ ${a} = <b>${x}</b>.`}};
+}
+
+/* ============================================================
+   Category registry + localized labels
+   ============================================================ */
+const CATEGORIES = [
+  {id:'money',      gen:genMoney,      name:{en:'Practical money',      fr:'Argent au quotidien'},
+   desc:{en:'Change, discounts, tips, tax, best value', fr:'Monnaie, rabais, pourboires, taxes, meilleur prix'}},
+  {id:'shortcuts',  gen:genShortcuts,  name:{en:'Mental-math shortcuts', fr:'Raccourcis de calcul mental'},
+   desc:{en:'Clever ways to work sums out in your head', fr:'Astuces pour calculer de tête'}},
+  {id:'patterns',   gen:genPatterns,   name:{en:'Number patterns',      fr:'Suites de nombres'},
+   desc:{en:'Doubling, squares, Fibonacci — find the rule', fr:'Doubles, carrés, Fibonacci — trouver la règle'}},
+  {id:'words',      gen:genWords,      name:{en:'Word problems',        fr:'Problèmes concrets'},
+   desc:{en:'Time, recipes, distance, gardens, ages', fr:'Temps, recettes, distances, jardins, âges'}},
+  {id:'geometry',   gen:genGeometry,   name:{en:'Geometry',             fr:'Géométrie'},
+   desc:{en:'Area, perimeter, angles, circles, volume', fr:'Aire, périmètre, angles, cercles, volume'}},
+  {id:'algebra',    gen:genAlgebra,    name:{en:'Algebra',              fr:'Algèbre'},
+   desc:{en:'Solve for x, substitute, sequences, simplify', fr:'Résoudre pour x, substituer, suites, simplifier'}},
+  {id:'estimation', gen:genEstimation, name:{en:'Estimation',           fr:'Estimation'},
+   desc:{en:'Sensible ballpark figures — no exact answer', fr:'Ordres de grandeur — pas de réponse exacte'}},
+  {id:'logic',      gen:genLogic,      name:{en:'Logic puzzles',        fr:'Casse-tête logiques'},
+   desc:{en:'Magic squares, handshakes, classic riddles', fr:'Carrés magiques, poignées de main, énigmes'}}
+];
+
+const UI = {
+  title:{en:'Numbers &amp; Reasoning', fr:'Nombres et raisonnement'},
+  subtitle:{en:'A practice set for keeping the mind active', fr:'Une série d’exercices pour garder l’esprit actif'},
+  levelLabel:{en:'Difficulty', fr:'Niveau'},
+  catsLabel:{en:'Categories', fr:'Catégories'},
+  levels:{gentle:{en:'Gentle',fr:'Doux'}, standard:{en:'Standard',fr:'Standard'}, sharp:{en:'Sharp',fr:'Corsé'}},
+  newBtn:{en:'New set', fr:'Nouvelle série'},
+  showBtn:{en:'Show all answers', fr:'Afficher toutes les réponses'},
+  hideBtn:{en:'Hide all answers', fr:'Masquer toutes les réponses'},
+  printBtn:{en:'Print', fr:'Imprimer'},
+  sheetTitle:{en:'Practice Set', fr:'Série d’exercices'},
+  answerKey:{en:'Answer Key', fr:'Corrigé'},
+  meta:{en:(n,lv,d)=>`${n} problems · ${lv} · ${d}`, fr:(n,lv,d)=>`${n} problèmes · ${lv} · ${d}`},
+  aLabel:{en:'Answer', fr:'Réponse'},
+  revealShow:{en:'Show answer', fr:'Afficher la réponse'},
+  revealHide:{en:'Hide answer', fr:'Masquer la réponse'},
+  empty:{en:'Choose at least one category above, then press “New set”.', fr:'Choisissez au moins une catégorie ci-dessus, puis appuyez sur « Nouvelle série ».'},
+  foot:{en:'Made for calm, unhurried practice. Reveal each answer with its button, or show them all at once.',
+        fr:'Conçu pour une pratique calme et sans hâte. Dévoilez chaque réponse avec son bouton, ou affichez-les toutes d’un coup.'},
+  dateFmt:{en:d=>d.toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'}),
+           fr:d=>d.toLocaleDateString('fr-CA',{year:'numeric',month:'long',day:'numeric'})}
+};
+
+/* ============================================================
+   Set generation
+   ============================================================ */
+function generateSet(){
+  const enabled = CATEGORIES.filter(c=>state.cats[c.id]);
+  if(enabled.length===0){ state.problems=[]; return; }
+  const target = rand(8,10);
+  const out = [];
+  let pool = shuffle(enabled.slice());
+  let i=0, guard=0;
+  while(out.length<target && guard<600){
+    guard++;
+    const cat = pool[i % pool.length];
+    const p = cat.gen(state.level);
+    const key = p.q.en.replace(/<[^>]+>/g,'').trim();
+    if(!out.some(o=>o.q.en.replace(/<[^>]+>/g,'').trim()===key)){
+      out.push(p); i++;
+      if(i % pool.length===0) pool = shuffle(pool);
     }
   }
+  state.problems = out;
+}
 
-  // A longer, more exciting fanfare for winning a prize.
-  function playFanfare() {
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50]; // rising "ta-da!"
-      notes.forEach((freq, i) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "triangle";
-        osc.frequency.value = freq;
-        const start = audioCtx.currentTime + i * 0.14;
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.35, start + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.45);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(start);
-        osc.stop(start + 0.5);
-      });
-    } catch (e) {
-      // Silent fallback.
-    }
+/* ============================================================
+   Rendering
+   ============================================================ */
+function catName(id){ return CATEGORIES.find(x=>x.id===id).name[state.lang]; }
+
+function render(){
+  const L = state.lang;
+  document.documentElement.lang = L;
+  document.getElementById('ui-title').innerHTML = UI.title[L];
+  document.getElementById('ui-subtitle').textContent = UI.subtitle[L];
+  document.getElementById('ui-level-label').textContent = UI.levelLabel[L];
+  document.getElementById('ui-cats-label').textContent = UI.catsLabel[L];
+  document.getElementById('ui-new').textContent = UI.newBtn[L];
+  document.getElementById('ui-toggle').textContent = state.showAnswers?UI.hideBtn[L]:UI.showBtn[L];
+  document.getElementById('ui-print').textContent = UI.printBtn[L];
+  document.getElementById('ui-sheet-title').textContent = UI.sheetTitle[L];
+  document.getElementById('ui-answerkey-title').textContent = UI.answerKey[L];
+  document.getElementById('ui-foot').textContent = UI.foot[L];
+
+  document.querySelectorAll('#levels button').forEach(b=>{
+    const lv=b.dataset.level; b.textContent = UI.levels[lv][L]; b.classList.toggle('active', lv===state.level);
+  });
+  document.getElementById('lang-en').classList.toggle('active', L==='en');
+  document.getElementById('lang-fr').classList.toggle('active', L==='fr');
+
+  const dateStr = UI.dateFmt[L](new Date());
+  document.getElementById('ui-sheet-meta').textContent =
+    state.problems.length ? UI.meta[L](state.problems.length, UI.levels[state.level][L], dateStr) : '';
+
+  const ol = document.getElementById('problems');
+  const key = document.getElementById('answerkey-list');
+  ol.innerHTML=''; key.innerHTML='';
+
+  if(state.problems.length===0){
+    ol.innerHTML = `<div class="empty">${UI.empty[L]}</div>`;
+    refreshCatLabels();
+    return;
   }
 
-  // A soft, warm two-note tone for a "good try" (never a harsh buzzer).
-  function playSoftTone() {
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [440.00, 392.00]; // gentle, reassuring descending step
-      notes.forEach((freq, i) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        const start = audioCtx.currentTime + i * 0.18;
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.22, start + 0.04);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.4);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(start);
-        osc.stop(start + 0.45);
-      });
-    } catch (e) {
-      // Silent fallback.
-    }
-  }
+  state.problems.forEach((p,idx)=>{
+    const li=document.createElement('li');
+    const revealed = p._revealed ? ' revealed' : '';
+    if(p._revealed) li.classList.add('revealed');
+    li.innerHTML =
+      `<span class="p-tag">${catName(p.cat)}</span>`+
+      `<div class="p-q">${p.q[L]}</div>`+
+      `<button class="p-reveal no-print" onclick="revealOne(this,${idx})">${p._revealed?UI.revealHide[L]:UI.revealShow[L]}</button>`+
+      `<div class="p-answer"><span class="a-label">${UI.aLabel[L]}</span>${p.a[L]}</div>`;
+    ol.appendChild(li);
 
-  // ---------- Helpers ----------
-  function money(value) {
-    return CURRENCY + value.toFixed(2);
-  }
+    const kli=document.createElement('li');
+    kli.value = idx+1;
+    kli.innerHTML = `<b>${catName(p.cat)}.</b> ${p.a[L]}`;
+    key.appendChild(kli);
+  });
 
-  // Make a "guess price" that sits near the real price. How close it
-  // is depends on the chosen difficulty level (closer = harder).
-  function generateShown(price) {
-    const lv = LEVELS[currentLevel];
-    const margin = lv.marginLow + Math.random() * (lv.marginHigh - lv.marginLow);
-    const goUp = Math.random() < 0.5;
-    let shown = goUp ? price * (1 + margin) : price * (1 - margin);
-    shown = Math.round(shown * 100) / 100;
-    // Safety: never zero/negative, and never identical to the real price.
-    if (shown <= 0) shown = 0.05;
-    if (shown === price) shown = goUp ? price + 0.05 : Math.max(0.05, price - 0.05);
-    return shown;
-  }
+  refreshCatLabels();
+}
 
-  // Update the gentle progress indicator in the top bar.
-  function updateProgress() {
-    const t = TEXT[lang];
-    const el = document.getElementById("progress");
-    if (!currentLevel) { el.textContent = ""; return; }
-    const lv = LEVELS[currentLevel];
-    if (lv.prizeBy === "rounds") {
-      el.textContent = t.rounds + rounds;            // "Rounds played: 3"
-    } else if (lv.prizeBy === "correct") {
-      el.textContent = "⭐ " + correctToward + " / " + lv.needed;
-    } else {
-      el.textContent = "🔥 " + streak + " / " + lv.needed;
-    }
-  }
+/* ============================================================
+   Controls
+   ============================================================ */
+function setLang(l){ state.lang=l; render(); }
+function setLevel(l){ state.level=l; newSet(); }
+function toggleAnswers(){
+  state.showAnswers=!state.showAnswers;
+  document.body.classList.toggle('show-answers', state.showAnswers);
+  render();
+}
+function revealOne(btn, idx){
+  const li = btn.closest('li');
+  const now = li.classList.toggle('revealed');
+  state.problems[idx]._revealed = now;
+  btn.textContent = now ? UI.revealHide[state.lang] : UI.revealShow[state.lang];
+}
+function newSet(){ generateSet(); render(); }
 
-  // Make a fresh shuffled order so products don't repeat in a row.
-  function shuffle() {
-    order = PRODUCTS.map((_, i) => i);
-    for (let i = order.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [order[i], order[j]] = [order[j], order[i]];
-    }
-    position = 0;
-  }
+function buildCats(){
+  const box=document.getElementById('cats');
+  box.innerHTML='';
+  CATEGORIES.forEach(c=>{
+    const lab=document.createElement('label');
+    lab.className='cat'+(state.cats[c.id]?' on':'');
+    lab.innerHTML =
+      `<input type="checkbox" ${state.cats[c.id]?'checked':''}>`+
+      `<span><span class="cat-name" data-name="${c.id}"></span><br><span class="cat-desc" data-desc="${c.id}"></span></span>`;
+    const cb=lab.querySelector('input');
+    cb.addEventListener('change',()=>{ state.cats[c.id]=cb.checked; lab.classList.toggle('on',cb.checked); newSet(); });
+    box.appendChild(lab);
+  });
+  refreshCatLabels();
+}
+function refreshCatLabels(){
+  CATEGORIES.forEach(c=>{
+    document.querySelectorAll(`[data-name="${c.id}"]`).forEach(el=>el.textContent=c.name[state.lang]);
+    document.querySelectorAll(`[data-desc="${c.id}"]`).forEach(el=>el.textContent=c.desc[state.lang]);
+  });
+}
 
-  // ---------- Apply the current language to all on-screen text ----------
-  function applyLanguage() {
-    const t = TEXT[lang];
-    document.documentElement.lang = lang;
-
-    // Top bar + start screen labels.
-    document.getElementById("langBtn").textContent = t.langButton;
-    document.getElementById("startTitle").textContent = t.title;
-    document.getElementById("chooseLevel").textContent = t.chooseLevel;
-    document.getElementById("lvlEasy").textContent = t.lvlEasy;
-    document.getElementById("lvlEasyDesc").textContent = t.lvlEasyDesc;
-    document.getElementById("lvlMedium").textContent = t.lvlMedium;
-    document.getElementById("lvlMediumDesc").textContent = t.lvlMediumDesc;
-    document.getElementById("lvlHard").textContent = t.lvlHard;
-    document.getElementById("lvlHardDesc").textContent = t.lvlHardDesc;
-
-    // Play + reveal + prize labels.
-    document.getElementById("pricePrompt").textContent = t.prompt;
-    document.getElementById("btnMore").textContent = t.more;
-    document.getElementById("btnLess").textContent = t.less;
-    document.getElementById("btnNext").textContent = t.next;
-    document.getElementById("prizeCheer").textContent = t.prizeCheer;
-    document.getElementById("prizeIntro").textContent = t.prizeIntro;
-    document.getElementById("btnContinue").textContent = t.prizeContinue;
-
-    updateProgress();
-
-    // Refresh whichever play screen is currently visible.
-    if (current) {
-      document.getElementById("guessName").textContent = current[lang];
-    }
-    if (onReveal) {
-      const failLevel = currentLevel && LEVELS[currentLevel].fail;
-      if (!failLevel) {
-        // Gentle level: always warm wording.
-        document.getElementById("revealCheer").textContent = t.cheers[lastCheerIndex];
-        document.getElementById("revealText").textContent =
-          lastWasRight ? t.gotIt : t.closeGuess;
-      } else if (lastWasRight) {
-        document.getElementById("revealCheer").textContent = t.rightCheer;
-        document.getElementById("revealText").textContent = t.rightText;
-      } else {
-        document.getElementById("revealCheer").textContent = t.wrongCheer;
-        document.getElementById("revealText").textContent = t.wrongText;
-      }
-    }
-    if (onPrize && prizeShowing >= 0) {
-      document.getElementById("prizeName").textContent = PRIZES[prizeShowing][lang];
-    }
-  }
-
-  // ---------- Switch between English and French ----------
-  function toggleLanguage() {
-    lang = (lang === "en") ? "fr" : "en";
-    applyLanguage();
-  }
-
-  // ---------- Show a product to guess ----------
-  function showGuess() {
-    if (position >= order.length) shuffle(); // reshuffle when we run out
-    current = PRODUCTS[order[position]];
-    position++;
-    currentShown = generateShown(current.price);
-    onReveal = false;
-
-    document.getElementById("guessEmoji").textContent = current.emoji;
-    document.getElementById("guessName").textContent = current[lang];
-    document.getElementById("guessShown").textContent = money(currentShown) + "?";
-
-    document.getElementById("startScreen").classList.add("hidden");
-    document.getElementById("guessScreen").classList.remove("hidden");
-    document.getElementById("revealScreen").classList.add("hidden");
-    document.getElementById("prizeScreen").classList.add("hidden");
-  }
-
-  // ---------- Player taps MORE or LESS ----------
-  function makeGuess(choice) {
-    const t = TEXT[lang];
-    const lv = LEVELS[currentLevel];
-
-    // Work out whether the guess matched the real price.
-    const realIsMore = current.price > currentShown;
-    lastWasRight = (choice === "more" && realIsMore) ||
-                   (choice === "less" && !realIsMore);
-
-    rounds++;
-
-    // ----- Feedback wording, icon, colour and sound -----
-    const icon  = document.getElementById("revealIcon");
-    const cheer = document.getElementById("revealCheer");
-
-    if (!lv.fail) {
-      // GENTLE level: no wrong answers. Always warm and celebratory.
-      lastCheerIndex = rounds % t.cheers.length;
-      cheer.textContent = t.cheers[lastCheerIndex];
-      cheer.style.color = "#2e7d32";
-      icon.textContent = "✅";
-      document.getElementById("revealText").textContent =
-        lastWasRight ? t.gotIt : t.closeGuess;
-      playChime();
-    } else if (lastWasRight) {
-      // MEDIUM / SHARPER, correct: a clear, happy "yes!"
-      cheer.textContent = t.rightCheer;
-      cheer.style.color = "#2e7d32";
-      icon.textContent = "✅";
-      document.getElementById("revealText").textContent = t.rightText;
-      playChime();
-    } else {
-      // MEDIUM / SHARPER, not quite: kind and encouraging, never harsh.
-      cheer.textContent = t.wrongCheer;
-      cheer.style.color = "#ef6c00";   // warm amber, not alarming red
-      icon.textContent = "💛";
-      document.getElementById("revealText").textContent = t.wrongText;
-      playSoftTone();
-    }
-
-    document.getElementById("revealEmoji").textContent = current.emoji;
-    document.getElementById("revealPrice").textContent = money(current.price);
-
-    // ----- Prize progress, depending on the level -----
-    if (lv.prizeBy === "rounds") {
-      // Won just by taking part.
-      if (rounds % lv.needed === 0) awardPrize();
-    } else if (lv.prizeBy === "correct") {
-      // Won by getting answers right (a wrong one simply doesn't count).
-      if (lastWasRight) {
-        correctToward++;
-        if (correctToward >= lv.needed) { awardPrize(); correctToward = 0; }
-      }
-    } else { // "streak"
-      // Won by a run of correct answers. A miss gently resets the run —
-      // the kindest form of "fail": you just start a fresh streak.
-      if (lastWasRight) {
-        streak++;
-        if (streak >= lv.needed) { awardPrize(); streak = 0; }
-      } else {
-        streak = 0;
-      }
-    }
-
-    updateProgress();
-
-    // Switch to the reveal screen with a little pop.
-    onReveal = true;
-    const reveal = document.getElementById("revealScreen");
-    document.getElementById("guessScreen").classList.add("hidden");
-    reveal.classList.remove("hidden");
-    reveal.classList.remove("pop");
-    void reveal.offsetWidth; // restart the animation
-    reveal.classList.add("pop");
-  }
-
-  // ---------- Queue up the next prize to celebrate ----------
-  function awardPrize() {
-    pendingPrize = Math.min(prizesWon, PRIZES.length - 1);
-    prizesWon++;
-  }
-
-  // ---------- Move on after the reveal ----------
-  // If a prize is waiting, celebrate it first; otherwise next product.
-  function nextRound() {
-    if (pendingPrize >= 0) {
-      showPrize(pendingPrize);
-      pendingPrize = -1;
-    } else {
-      showGuess();
-    }
-  }
-
-  // ---------- Show the prize celebration ----------
-  function showPrize(index) {
-    const t = TEXT[lang];
-    const prize = PRIZES[index];
-    prizeShowing = index;
-    onReveal = false;
-    onPrize = true;
-
-    // Keep the best prize in the top-bar badge as a happy reminder.
-    if (index > latestPrizeIndex) latestPrizeIndex = index;
-    const badge = document.getElementById("prizeBadge");
-    document.getElementById("prizeBadgeEmoji").textContent = PRIZES[latestPrizeIndex].emoji;
-    badge.classList.remove("hidden");
-
-    document.getElementById("prizeCheer").textContent = t.prizeCheer;
-    document.getElementById("prizeIntro").textContent = t.prizeIntro;
-    document.getElementById("prizeEmoji").textContent = prize.emoji;
-    document.getElementById("prizeName").textContent = prize[lang];
-
-    document.getElementById("guessScreen").classList.add("hidden");
-    document.getElementById("revealScreen").classList.add("hidden");
-    const screen = document.getElementById("prizeScreen");
-    screen.classList.remove("hidden");
-
-    // Make the prize emoji wiggle excitedly.
-    const emoji = document.getElementById("prizeEmoji");
-    emoji.classList.remove("wiggle");
-    void emoji.offsetWidth;
-    emoji.classList.add("wiggle");
-
-    playFanfare();
-  }
-
-  // ---------- Carry on after celebrating a prize ----------
-  function continueFromPrize() {
-    onPrize = false;
-    showGuess();
-  }
-
-  // ---------- Begin a game at the chosen level ----------
-  function startGame(level) {
-    currentLevel = level;
-    // Fresh start for every new game.
-    rounds = 0;
-    correctToward = 0;
-    streak = 0;
-    prizesWon = 0;
-    latestPrizeIndex = -1;
-    pendingPrize = -1;
-    onReveal = false;
-    onPrize = false;
-
-    document.getElementById("homeBtn").classList.remove("hidden");
-    document.getElementById("prizeBadge").classList.add("hidden");
-
-    shuffle();
-    showGuess();
-    updateProgress();
-  }
-
-  // ---------- Return to the level-choosing screen ----------
-  function showStart() {
-    currentLevel = null;
-    current = null;
-    onReveal = false;
-    onPrize = false;
-
-    document.getElementById("startScreen").classList.remove("hidden");
-    document.getElementById("guessScreen").classList.add("hidden");
-    document.getElementById("revealScreen").classList.add("hidden");
-    document.getElementById("prizeScreen").classList.add("hidden");
-
-    document.getElementById("homeBtn").classList.add("hidden");
-    document.getElementById("prizeBadge").classList.add("hidden");
-    document.getElementById("progress").textContent = "";
-  }
-
-  // ---------- First load: show the level screen ----------
-  applyLanguage();
-  showStart();
+/* ============================================================
+   Init
+   ============================================================ */
+buildCats();
+newSet();
 </script>
-
 </body>
 </html>
