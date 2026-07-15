@@ -3,909 +3,733 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Price Is Right</title>
+<title>Numbers &amp; Reasoning — Practice Set</title>
 
 <!--
   ============================================================
-  THE PRICE IS RIGHT
-  A gentle, no-fail guessing game for people living with
-  dementia. Designed for tablets and touch screens in care
-  settings.
+  NUMBERS & REASONING  /  NOMBRES ET RAISONNEMENT
+  A bilingual (EN/FR) math worksheet generator for cognitive
+  stimulation with a capable adult. Fully offline, no build
+  step, no libraries. Everything lives in this one file.
 
-  HOW TO PLAY:
-    1. Choose a level on the first screen.
-    2. A familiar product and a price are shown.
-    3. The player taps MORE or LESS to guess whether the real
-       price is higher or lower than the price shown.
-    4. The real price is revealed with warm feedback.
-    5. Tap NEXT to move on at their own pace.
+  Six toggleable categories, three difficulty levels, a
+  "New set" regenerator, a hidden-by-default answer key, and
+  a clean high-contrast print layout (worksheet on one page,
+  answer key on a separate optional page).
 
-  THREE LEVELS (for different stages):
-    🌼 Gentle  — no wrong answers; every guess is celebrated.
-    ⭐ Medium  — prices are closer; correct answers earn prizes.
-    🔥 Sharper — prices very close; build a streak of correct
-                 answers. A miss only resets the streak — it is
-                 always kind, never a "game over".
-
-  No timers. No scolding. The harder levels add a gentle,
-  encouraging challenge — never a punishing one.
+  Design intent: calm, adult, respectful. No cartoons.
   ============================================================
 -->
-
-<!--
-  ============================================================
-  CAREGIVER: EDIT THE PRODUCTS HERE
-  ============================================================
-  This is the ONLY part you need to change to swap products.
-
-  Each product has these parts:
-     emoji : a picture (an emoji). You can paste any emoji.
-     en    : the product name in English.
-     fr    : the product name in French.
-     price : the REAL price of the item (a number).
-
-  The game shows a "guess price" near the real price and asks
-  whether the real price is MORE or LESS. How CLOSE that guess
-  price is depends on the difficulty level the player picks on
-  the first screen — so you only need to set the real price.
-
-  Prices are just for fun — make them whatever feels familiar
-  to the people you care for.
-  ============================================================
--->
-<script>
-const PRODUCTS = [
-  { emoji: "🍞", en: "Loaf of Bread",      fr: "Pain",                         price: 1.50 },
-  { emoji: "🥛", en: "Bottle of Milk",     fr: "Bouteille de lait",            price: 1.30 },
-  { emoji: "🥚", en: "Dozen Eggs",         fr: "Douzaine d'œufs",              price: 2.20 },
-  { emoji: "🧈", en: "Tub of Butter",      fr: "Beurre",                       price: 2.00 },
-  { emoji: "🧀", en: "Block of Cheese",    fr: "Bloc de fromage",              price: 3.50 },
-  { emoji: "🍌", en: "Bunch of Bananas",   fr: "Régime de bananes",            price: 1.00 },
-  { emoji: "🍎", en: "Bag of Apples",      fr: "Sac de pommes",                price: 2.50 },
-  { emoji: "🥔", en: "Bag of Potatoes",    fr: "Sac de pommes de terre",       price: 2.00 },
-  { emoji: "🍅", en: "Tin of Tomatoes",    fr: "Boîte de tomates",             price: 0.80 },
-  { emoji: "🫘", en: "Tin of Baked Beans", fr: "Boîte de fèves au lard",       price: 0.90 },
-  { emoji: "🍯", en: "Jar of Honey",       fr: "Pot de miel",                  price: 3.00 },
-  { emoji: "☕", en: "Jar of Coffee",      fr: "Pot de café",                  price: 4.50 },
-  { emoji: "🍵", en: "Box of Tea Bags",    fr: "Boîte de sachets de thé",      price: 2.50 },
-  { emoji: "🍫", en: "Bar of Chocolate",   fr: "Tablette de chocolat",         price: 1.20 },
-  { emoji: "🍬", en: "Bag of Sweets",      fr: "Sac de bonbons",               price: 1.50 },
-  { emoji: "🍪", en: "Packet of Biscuits", fr: "Paquet de biscuits",           price: 1.10 },
-  { emoji: "🥤", en: "Bottle of Soda",     fr: "Bouteille de boisson gazeuse", price: 1.30 },
-  { emoji: "🧃", en: "Carton of Juice",    fr: "Carton de jus",                price: 1.60 },
-  { emoji: "🍊", en: "Bag of Oranges",     fr: "Sac d'oranges",                price: 2.20 },
-  { emoji: "🥕", en: "Bag of Carrots",     fr: "Sac de carottes",              price: 0.70 },
-  { emoji: "🧼", en: "Bar of Soap",        fr: "Savon",                        price: 1.00 },
-  { emoji: "🧻", en: "Toilet Roll Pack",   fr: "Paquet de papier toilette",    price: 3.50 },
-  { emoji: "🪥", en: "Toothbrush",         fr: "Brosse à dents",               price: 1.50 },
-  { emoji: "🧂", en: "Box of Salt",        fr: "Boîte de sel",                 price: 0.60 },
-  { emoji: "🍚", en: "Bag of Rice",        fr: "Sac de riz",                   price: 2.00 },
-  { emoji: "🍝", en: "Packet of Pasta",    fr: "Paquet de pâtes",              price: 1.00 },
-  { emoji: "🥓", en: "Pack of Bacon",      fr: "Paquet de bacon",              price: 3.00 },
-  { emoji: "🍦", en: "Tub of Ice Cream",   fr: "Pot de crème glacée",          price: 2.80 },
-  { emoji: "🥫", en: "Tin of Soup",        fr: "Boîte de soupe",               price: 0.90 },
-  { emoji: "🍮", en: "Pot of Custard",     fr: "Pot de crème anglaise",        price: 1.20 }
-];
-
-// ---------- Wording in both languages (caregivers can tweak too) ----------
-const TEXT = {
-  en: {
-    langButton: "Français",          // tap to switch TO French
-    title:      "The Price Is Right",
-    chooseLevel:"Choose a level",
-    lvlEasy:        "🌼 Gentle",
-    lvlEasyDesc:    "Just for fun — no wrong answers",
-    lvlMedium:      "⭐ Medium",
-    lvlMediumDesc:  "A little challenge",
-    lvlHard:        "🔥 Sharper",
-    lvlHardDesc:    "Prices are close — build a streak!",
-    rounds:     "Rounds played: ",
-    prompt:     "Is the real price...",
-    more:       "MORE ⬆️",
-    less:       "LESS ⬇️",
-    next:       "NEXT ➡️",
-    gotIt:      "You got it! The real price was",
-    closeGuess: "Great guess! The real price was",
-    cheers: ["Well done!", "Great guess!", "Lovely!", "Wonderful!",
-             "Nice one!", "Brilliant!", "Good job!", "Fantastic!"],
-    rightCheer: "That's right!",     // shown when correct (Medium/Sharper)
-    wrongCheer: "Good try!",         // gentle, never scolding
-    rightText:  "Correct! The real price was",
-    wrongText:  "The real price was",
-    prizeCheer:    "Congratulations!",
-    prizeIntro:    "You've won...",
-    prizeContinue: "KEEP PLAYING ➡️"
-  },
-  fr: {
-    langButton: "English",           // tap to switch TO English
-    title:      "Le Juste Prix",
-    chooseLevel:"Choisissez un niveau",
-    lvlEasy:        "🌼 Tout en douceur",
-    lvlEasyDesc:    "Pour le plaisir — aucune mauvaise réponse",
-    lvlMedium:      "⭐ Moyen",
-    lvlMediumDesc:  "Un petit défi",
-    lvlHard:        "🔥 Plus pointu",
-    lvlHardDesc:    "Les prix sont proches — enchaînez les bonnes réponses !",
-    rounds:     "Parties jouées : ",
-    prompt:     "Le vrai prix est-il...",
-    more:       "PLUS ⬆️",
-    less:       "MOINS ⬇️",
-    next:       "SUIVANT ➡️",
-    gotIt:      "Bravo ! Le vrai prix était",
-    closeGuess: "Bien deviné ! Le vrai prix était",
-    cheers: ["Bravo !", "Bien joué !", "Magnifique !", "Merveilleux !",
-             "Excellent !", "Superbe !", "Parfait !", "Fantastique !"],
-    rightCheer: "C'est exact !",
-    wrongCheer: "Bel essai !",
-    rightText:  "Correct ! Le vrai prix était",
-    wrongText:  "Le vrai prix était",
-    prizeCheer:    "Félicitations !",
-    prizeIntro:    "Vous avez gagné...",
-    prizeContinue: "CONTINUER ➡️"
-  }
-};
-
-// Currency symbol shown before every price. Change to "$", "€", etc.
-const CURRENCY = "$"; // Canadian dollars
-
-// ============================================================
-//  CAREGIVER: PRIZES YOU CAN WIN
-// ============================================================
-//  As the player keeps going, they reach bigger and bigger
-//  prizes — ending in a brand-new car! These are won just by
-//  playing, never lost. Edit the list or the emojis as you like.
-//  Order them small-to-big for the nicest effect.
-// ============================================================
-const PRIZES = [
-  { emoji: "🧸", en: "Teddy Bear",        fr: "Ours en peluche" },
-  { emoji: "🍫", en: "Box of Chocolates", fr: "Boîte de chocolats" },
-  { emoji: "💐", en: "Bunch of Flowers",  fr: "Bouquet de fleurs" },
-  { emoji: "☕", en: "Coffee Maker",      fr: "Cafetière" },
-  { emoji: "🚲", en: "Shiny Bicycle",     fr: "Beau vélo" },
-  { emoji: "📺", en: "Big Television",    fr: "Grand téléviseur" },
-  { emoji: "🏖️", en: "Seaside Holiday",   fr: "Vacances à la mer" },
-  { emoji: "🚗", en: "Brand New Car!",    fr: "Voiture neuve !" }
-];
-
-// ============================================================
-//  CAREGIVER: DIFFICULTY LEVELS
-// ============================================================
-//  Three levels, chosen on the first screen. You can adjust the
-//  numbers, but the defaults are tuned for care settings.
-//
-//    margin   : how far the "guess price" sits from the real
-//               price. Smaller = closer = harder to tell.
-//               (0.40 means roughly 40% away.)
-//    fail     : false = every answer is celebrated (no wrong
-//               answers at all). true = correct/incorrect are
-//               shown, but always kindly — never a "game over".
-//    prizeBy  : how prizes are earned —
-//               "rounds"  = every few turns, just for playing
-//               "correct" = every few CORRECT answers
-//               "streak"  = a run of correct answers in a row
-//    needed   : how many (rounds / correct / streak) per prize.
-// ============================================================
-const LEVELS = {
-  easy: {
-    marginLow: 0.40, marginHigh: 0.70,
-    fail: false,
-    prizeBy: "rounds", needed: 5
-  },
-  medium: {
-    marginLow: 0.18, marginHigh: 0.33,
-    fail: true,
-    prizeBy: "correct", needed: 5
-  },
-  hard: {
-    marginLow: 0.06, marginHigh: 0.14,
-    fail: true,
-    prizeBy: "streak", needed: 4
-  }
-};
-</script>
 
 <style>
-  /* ---------- Base layout ---------- */
-  * { box-sizing: border-box; }
-
-  html, body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
+  :root{
+    --bg:#f4f1ea;            /* warm off-white paper */
+    --panel:#ffffff;
+    --ink:#26303a;          /* deep slate */
+    --ink-soft:#516170;
+    --line:#d9d2c4;
+    --accent:#2f6b6b;       /* muted teal */
+    --accent-soft:#e5efee;
+    --gold:#8a6d3b;
+    --shadow:0 1px 3px rgba(38,48,58,.10),0 6px 18px rgba(38,48,58,.06);
+    --radius:10px;
   }
 
-  body {
-    font-family: Arial, Helvetica, sans-serif;
-    background: #fdf6e3;          /* warm, soft cream background */
-    color: #1a1a1a;              /* near-black for high contrast */
-    font-size: 32px;            /* minimum body text size */
-    -webkit-tap-highlight-color: transparent;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
+    font-size:19px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
   }
 
-  /* ---------- Top bar: language toggle + gentle rounds counter ---------- */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px;
-    font-size: 28px;
-    color: #5a5a5a;
-    letter-spacing: 0.5px;
+  .wrap{max-width:900px;margin:0 auto;padding:28px 22px 80px;}
+
+  /* ---------- Header ---------- */
+  header.masthead{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    gap:18px;flex-wrap:wrap;border-bottom:2px solid var(--line);
+    padding-bottom:16px;margin-bottom:22px;
+  }
+  .masthead h1{
+    font-size:30px;margin:0;letter-spacing:.2px;font-weight:700;
+  }
+  .masthead .subtitle{color:var(--ink-soft);font-size:16px;margin-top:4px;font-style:italic;}
+
+  .langtoggle{display:flex;gap:0;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow);}
+  .langtoggle button{
+    font-family:inherit;font-size:15px;padding:8px 18px;border:0;background:transparent;
+    color:var(--ink-soft);cursor:pointer;letter-spacing:.5px;
+  }
+  .langtoggle button.active{background:var(--accent);color:#fff;font-weight:700;}
+
+  /* ---------- Controls panel ---------- */
+  .controls{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:20px 22px;margin-bottom:26px;
+  }
+  .controls .row{margin-bottom:20px;}
+  .controls .row:last-child{margin-bottom:0;}
+  .controls .label{
+    display:block;font-size:14px;letter-spacing:.8px;text-transform:uppercase;
+    color:var(--ink-soft);margin-bottom:10px;font-family:Arial,Helvetica,sans-serif;font-weight:700;
   }
 
-  /* Small badge showing the latest prize won (in the top bar) */
-  .prize-badge {
-    font-size: 30px;
-    font-weight: bold;
-    color: #6a4ba3;
+  .segmented{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap;}
+  .segmented button{
+    font-family:inherit;font-size:17px;padding:10px 20px;border:0;border-right:1px solid var(--line);
+    background:var(--panel);color:var(--ink);cursor:pointer;
   }
+  .segmented button:last-child{border-right:0;}
+  .segmented button.active{background:var(--accent);color:#fff;font-weight:700;}
 
-  /* The language toggle button (smaller than the play buttons) */
-  .btn-lang {
-    font-size: 28px;
-    font-weight: bold;
-    min-height: 0;
-    width: auto;
-    padding: 12px 24px;
-    border-radius: 16px;
-    background: #6a4ba3;          /* gentle purple, distinct from play buttons */
-    box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+  .cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;}
+  .cat{
+    display:flex;align-items:flex-start;gap:12px;border:1px solid var(--line);
+    border-radius:8px;padding:12px 14px;cursor:pointer;background:var(--panel);
+    transition:border-color .15s,background .15s;user-select:none;
   }
+  .cat.on{border-color:var(--accent);background:var(--accent-soft);}
+  .cat input{width:20px;height:20px;margin-top:3px;accent-color:var(--accent);cursor:pointer;flex:none;}
+  .cat .cat-name{font-weight:700;font-size:17px;}
+  .cat .cat-desc{font-size:14px;color:var(--ink-soft);line-height:1.35;font-family:Arial,Helvetica,sans-serif;}
 
-  /* Small "home" button to return to the level screen */
-  .btn-home {
-    font-size: 30px;
-    min-height: 0;
-    width: auto;
-    padding: 10px 18px;
-    border-radius: 16px;
-    background: #8d6e63;          /* soft brown */
-    box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+  .actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .btn{
+    font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;letter-spacing:.3px;
+    padding:12px 22px;border-radius:8px;border:1px solid transparent;cursor:pointer;
   }
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:var(--shadow);}
+  .btn-primary:hover{background:#255757;}
+  .btn-ghost{background:var(--panel);color:var(--ink);border-color:var(--line);}
+  .btn-ghost:hover{background:#faf8f3;}
 
-  /* ---------- Start screen (choose a level) ---------- */
-  .start-title {
-    font-size: 64px;
-    font-weight: bold;
-    color: #1565c0;
-    margin-bottom: 8px;
+  /* ---------- Worksheet ---------- */
+  .sheet-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;margin:8px 0 6px;}
+  .sheet-head h2{font-size:23px;margin:0;}
+  .sheet-meta{color:var(--ink-soft);font-size:15px;font-family:Arial,Helvetica,sans-serif;}
+
+  ol.problems{list-style:none;counter-reset:p;margin:14px 0 0;padding:0;}
+  ol.problems > li{
+    counter-increment:p;position:relative;padding:18px 20px 18px 62px;margin-bottom:14px;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);break-inside:avoid;
   }
-
-  .start-sub {
-    font-size: 36px;
-    color: #5a5a5a;
-    margin-bottom: 32px;
+  ol.problems > li::before{
+    content:counter(p);position:absolute;left:16px;top:16px;
+    width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-family:Arial,Helvetica,sans-serif;
+    font-weight:700;font-size:17px;
   }
-
-  /* Level buttons stack the big label over a small description */
-  .level-btn {
-    flex-direction: column;
-    line-height: 1.15;
-    padding: 20px;
+  .p-tag{
+    display:inline-block;font-family:Arial,Helvetica,sans-serif;font-size:12px;letter-spacing:.7px;
+    text-transform:uppercase;color:var(--gold);border:1px solid #e2d6bf;background:#faf5ea;
+    padding:2px 9px;border-radius:999px;margin-bottom:8px;font-weight:700;
   }
-
-  .level-desc {
-    display: block;
-    font-size: 26px;
-    font-weight: normal;
-    margin-top: 8px;
+  .p-q{font-size:19px;}
+  .p-q .work{color:var(--ink-soft);font-style:italic;font-size:17px;display:block;margin-top:6px;}
+  .p-answer{
+    margin-top:12px;padding:11px 14px;border-left:4px solid var(--accent);background:var(--accent-soft);
+    border-radius:0 6px 6px 0;font-size:17px;
   }
+  .p-answer .a-label{font-family:Arial,Helvetica,sans-serif;font-size:12px;letter-spacing:.7px;
+    text-transform:uppercase;color:var(--accent);font-weight:700;margin-right:8px;}
 
-  .btn-easy   { background: #2e7d32; }   /* green */
-  .btn-medium { background: #1565c0; }   /* blue */
-  .btn-hard   { background: #6a4ba3; }   /* purple */
-
-  /* ---------- Main play area ---------- */
-  main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    text-align: center;
+  /* magic square grid */
+  table.msq{border-collapse:collapse;margin:10px 0 2px;}
+  table.msq td{
+    width:52px;height:52px;border:1.5px solid var(--ink);text-align:center;vertical-align:middle;
+    font-size:22px;font-family:Arial,Helvetica,sans-serif;font-weight:700;
   }
+  table.msq td.blank{background:#f4f1ea;color:var(--accent);}
 
-  /* Big product picture (emoji) */
-  .product-emoji {
-    font-size: 160px;
-    line-height: 1;
-    margin-bottom: 8px;
+  /* answers hidden state */
+  body:not(.show-answers) .p-answer{display:none;}
+  body:not(.show-answers) #answerkey{display:none;}
+
+  #answerkey{margin-top:34px;padding-top:22px;border-top:2px solid var(--line);}
+  #answerkey h2{font-size:22px;margin:0 0 12px;}
+  #answerkey ol{padding-left:26px;}
+  #answerkey li{margin-bottom:10px;break-inside:avoid;}
+
+  .empty{background:var(--panel);border:1px dashed var(--line);border-radius:var(--radius);
+    padding:34px;text-align:center;color:var(--ink-soft);}
+
+  footer.foot{margin-top:40px;text-align:center;color:var(--ink-soft);font-size:14px;
+    font-family:Arial,Helvetica,sans-serif;}
+
+  /* ---------- Print ---------- */
+  @media print{
+    :root{--bg:#fff;}
+    body{background:#fff;font-size:13pt;}
+    .wrap{max-width:none;padding:0;}
+    .no-print{display:none !important;}
+    .masthead{border-bottom:2px solid #000;}
+    ol.problems > li,.controls,#answerkey li{box-shadow:none;}
+    ol.problems > li{border:1px solid #999;}
+    ol.problems > li::before{background:#000;}
+    .p-tag{color:#000;border-color:#999;background:#fff;}
+    .p-answer{background:#fff;border-left:4px solid #000;}
+    /* Answer key prints on its own page, only when answers are shown */
+    body:not(.show-answers) #answerkey{display:none;}
+    body.show-answers #answerkey{display:block;page-break-before:always;}
+    a[href]:after{content:"";}
   }
-
-  /* Product name */
-  .product-name {
-    font-size: 48px;
-    font-weight: bold;
-    margin-bottom: 24px;
-  }
-
-  /* The "price shown" prompt */
-  .price-prompt {
-    font-size: 36px;
-    margin-bottom: 8px;
-  }
-
-  .price-shown {
-    font-size: 72px;
-    font-weight: bold;
-    color: #1565c0;             /* strong blue, easy to read */
-    margin-bottom: 32px;
-  }
-
-  /* ---------- Buttons ---------- */
-  .button-row {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    width: 100%;
-    max-width: 640px;
-  }
-
-  button {
-    font-family: inherit;
-    font-size: 48px;
-    font-weight: bold;
-    min-height: 120px;          /* huge tap targets */
-    width: 100%;
-    border: none;
-    border-radius: 24px;
-    color: #ffffff;
-    cursor: pointer;
-    padding: 16px;
-    box-shadow: 0 6px 0 rgba(0,0,0,0.18);
-    transition: transform 0.05s ease;
-  }
-
-  button:active { transform: translateY(4px); }
-
-  .btn-more { background: #2e7d32; }   /* green */
-  .btn-less { background: #c62828; }   /* red */
-  .btn-next { background: #1565c0; }   /* blue */
-
-  /* ---------- Reveal screen ---------- */
-  .reveal-emoji {
-    font-size: 160px;
-    line-height: 1;
-    margin-bottom: 8px;
-  }
-
-  .reveal-cheer {
-    font-size: 52px;
-    font-weight: bold;
-    color: #2e7d32;
-    margin-bottom: 16px;
-  }
-
-  .reveal-checkmark {
-    font-size: 90px;
-    margin-bottom: 8px;
-  }
-
-  .reveal-text {
-    font-size: 40px;
-    margin-bottom: 8px;
-  }
-
-  .reveal-price {
-    font-size: 80px;
-    font-weight: bold;
-    color: #1565c0;
-    margin-bottom: 32px;
-  }
-
-  /* Utility to hide whichever screen is not active */
-  .hidden { display: none; }
-
-  /* Gentle pop animation for the reveal */
-  @keyframes pop {
-    0%   { transform: scale(0.6); opacity: 0; }
-    60%  { transform: scale(1.1); opacity: 1; }
-    100% { transform: scale(1); }
-  }
-  .pop { animation: pop 0.45s ease-out; }
-
-  /* ---------- Prize celebration screen ---------- */
-  .prize-cheer {
-    font-size: 60px;
-    font-weight: bold;
-    color: #6a4ba3;             /* celebratory purple */
-    margin-bottom: 8px;
-  }
-
-  .prize-emoji {
-    font-size: 200px;            /* extra big for the big moment */
-    line-height: 1;
-    margin-bottom: 8px;
-  }
-
-  .prize-intro {
-    font-size: 40px;
-    margin-bottom: 8px;
-  }
-
-  .prize-name {
-    font-size: 80px;
-    font-weight: bold;
-    color: #6a4ba3;
-    margin-bottom: 32px;
-  }
-
-  /* The "keep playing" button uses the friendly purple too */
-  .btn-continue { background: #6a4ba3; }
-
-  /* A gentle wiggle to make the prize feel exciting */
-  @keyframes wiggle {
-    0%, 100% { transform: rotate(0deg) scale(1); }
-    25%      { transform: rotate(-5deg) scale(1.05); }
-    75%      { transform: rotate(5deg) scale(1.05); }
-  }
-  .wiggle { animation: wiggle 0.6s ease-in-out 2; }
 </style>
 </head>
-
 <body>
+<div class="wrap">
 
-  <header>
-    <button class="btn-home hidden" id="homeBtn" onclick="showStart()">🏠</button>
-    <span id="progress"></span>
-    <span class="prize-badge hidden" id="prizeBadge">🏆 <span id="prizeBadgeEmoji"></span></span>
-    <button class="btn-lang" id="langBtn" onclick="toggleLanguage()">Français</button>
+  <header class="masthead">
+    <div>
+      <h1 id="ui-title">Numbers &amp; Reasoning</h1>
+      <div class="subtitle" id="ui-subtitle">A practice set for keeping the mind active</div>
+    </div>
+    <div class="langtoggle no-print" role="group" aria-label="Language">
+      <button id="lang-en" class="active" onclick="setLang('en')">English</button>
+      <button id="lang-fr" onclick="setLang('fr')">Français</button>
+    </div>
   </header>
 
-  <main>
-    <!-- ===== START SCREEN (choose a level) ===== -->
-    <div id="startScreen">
-      <div class="start-title" id="startTitle">The Price Is Right</div>
-      <div class="start-sub" id="chooseLevel">Choose a level</div>
-
-      <div class="button-row">
-        <button class="btn-easy level-btn" onclick="startGame('easy')">
-          <span id="lvlEasy">🌼 Gentle</span>
-          <span class="level-desc" id="lvlEasyDesc">Just for fun — no wrong answers</span>
-        </button>
-        <button class="btn-medium level-btn" onclick="startGame('medium')">
-          <span id="lvlMedium">⭐ Medium</span>
-          <span class="level-desc" id="lvlMediumDesc">A little challenge</span>
-        </button>
-        <button class="btn-hard level-btn" onclick="startGame('hard')">
-          <span id="lvlHard">🔥 Sharper</span>
-          <span class="level-desc" id="lvlHardDesc">Prices are close — build a streak!</span>
-        </button>
+  <section class="controls no-print" aria-label="Options">
+    <div class="row">
+      <span class="label" id="ui-level-label">Difficulty</span>
+      <div class="segmented" id="levels" role="group">
+        <button data-level="gentle" onclick="setLevel('gentle')">Gentle</button>
+        <button data-level="standard" class="active" onclick="setLevel('standard')">Standard</button>
+        <button data-level="sharp" onclick="setLevel('sharp')">Sharp</button>
       </div>
     </div>
 
-    <!-- ===== GUESS SCREEN ===== -->
-    <div id="guessScreen" class="hidden">
-      <div class="product-emoji" id="guessEmoji">🍞</div>
-      <div class="product-name" id="guessName">Loaf of Bread</div>
-
-      <div class="price-prompt" id="pricePrompt">Is the real price...</div>
-      <div class="price-shown" id="guessShown">$2.50?</div>
-
-      <div class="button-row">
-        <button class="btn-more" id="btnMore" onclick="makeGuess('more')">MORE ⬆️</button>
-        <button class="btn-less" id="btnLess" onclick="makeGuess('less')">LESS ⬇️</button>
-      </div>
+    <div class="row">
+      <span class="label" id="ui-cats-label">Categories</span>
+      <div class="cats" id="cats"></div>
     </div>
 
-    <!-- ===== REVEAL SCREEN ===== -->
-    <div id="revealScreen" class="hidden">
-      <div class="reveal-emoji" id="revealEmoji">🍞</div>
-      <div class="reveal-checkmark" id="revealIcon">✅</div>
-      <div class="reveal-cheer" id="revealCheer">Well done!</div>
-      <div class="reveal-text" id="revealText">The real price was</div>
-      <div class="reveal-price" id="revealPrice">$1.50</div>
-
-      <div class="button-row">
-        <button class="btn-next" id="btnNext" onclick="nextRound()">NEXT ➡️</button>
-      </div>
+    <div class="row actions">
+      <button class="btn btn-primary" id="ui-new" onclick="newSet()">New set</button>
+      <button class="btn btn-ghost" id="ui-toggle" onclick="toggleAnswers()">Show answers</button>
+      <button class="btn btn-ghost" id="ui-print" onclick="window.print()">Print</button>
     </div>
+  </section>
 
-    <!-- ===== PRIZE CELEBRATION SCREEN ===== -->
-    <div id="prizeScreen" class="hidden">
-      <div class="prize-cheer" id="prizeCheer">Congratulations!</div>
-      <div class="prize-emoji" id="prizeEmoji">🚗</div>
-      <div class="prize-intro" id="prizeIntro">You've won...</div>
-      <div class="prize-name" id="prizeName">Brand New Car!</div>
+  <div class="sheet-head">
+    <h2 id="ui-sheet-title">Practice Set</h2>
+    <div class="sheet-meta" id="ui-sheet-meta"></div>
+  </div>
 
-      <div class="button-row">
-        <button class="btn-continue" id="btnContinue" onclick="continueFromPrize()">KEEP PLAYING ➡️</button>
-      </div>
-    </div>
-  </main>
+  <ol class="problems" id="problems"></ol>
+
+  <section id="answerkey" aria-label="Answer key">
+    <h2 id="ui-answerkey-title">Answer Key</h2>
+    <ol id="answerkey-list"></ol>
+  </section>
+
+  <footer class="foot no-print" id="ui-foot"></footer>
+</div>
 
 <script>
-  // ---------- Game state ----------
-  let rounds = 0;
-  let order = [];          // shuffled list of product indexes
-  let position = 0;        // where we are in the shuffled list
-  let current = null;      // the product being shown right now
-  let currentShown = 0;    // the "guess price" shown for the current product
-  let currentLevel = null; // "easy" | "medium" | "hard" (null on start screen)
-  let lang = "en";         // current language: "en" or "fr"
-  let onReveal = false;    // is the reveal screen showing?
-  let onPrize = false;     // is the prize celebration showing?
-  let lastWasRight = false;// did the last guess match?
-  let lastCheerIndex = 0;  // which cheer to repeat if language is switched
-  let correctToward = 0;   // correct answers counted toward the next prize (Medium)
-  let streak = 0;          // correct answers in a row (Sharper)
-  let prizesWon = 0;       // how many prizes won so far (drives which prize is next)
-  let pendingPrize = -1;   // a prize waiting to be celebrated after NEXT (-1 = none)
-  let prizeShowing = -1;   // the prize currently on the celebration screen
-  let latestPrizeIndex = -1; // best prize won so far (for the top-bar badge)
+"use strict";
 
-  // ---------- Audio: a cheerful little chime ----------
-  // Uses the Web Audio API so we need no sound files (works offline).
-  let audioCtx = null;
-  function playChime() {
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [523.25, 659.25, 783.99]; // a happy C-major chord arpeggio
-      notes.forEach((freq, i) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        const start = audioCtx.currentTime + i * 0.12;
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.3, start + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.5);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(start);
-        osc.stop(start + 0.55);
-      });
-    } catch (e) {
-      // If sound is unavailable, the game still works fine silently.
+/* ============================================================
+   State & small helpers
+   ============================================================ */
+const state = {
+  lang:'en',
+  level:'standard',
+  cats:{money:true,shortcuts:true,patterns:true,words:true,estimation:true,logic:true},
+  showAnswers:false,
+  problems:[]
+};
+
+const rand = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+const choice = arr => arr[Math.floor(Math.random()*arr.length)];
+const shuffle = arr => { const a=arr.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const pad2 = n => (n<10?'0':'')+n;
+
+function money(n,lang){
+  const s = Number(n).toFixed(2);
+  return lang==='fr' ? s.replace('.',',')+' $' : '$'+s;
+}
+function num(n,lang){
+  let s = String(n);
+  return lang==='fr' ? s.replace('.',',') : s;
+}
+function fmtTime(mins,lang){
+  // mins = minutes since midnight
+  mins = ((mins%1440)+1440)%1440;
+  let h = Math.floor(mins/60), m = mins%60;
+  if(lang==='fr'){ return h+' h '+pad2(m); }
+  let ap = h<12?'a.m.':'p.m.';
+  let h12 = h%12; if(h12===0) h12=12;
+  return h12+':'+pad2(m)+' '+ap;
+}
+
+/* ============================================================
+   Category generators. Each returns { cat, q:{en,fr}, a:{en,fr} }
+   q may contain simple HTML.
+   ============================================================ */
+
+/* ---- 1. Practical money ---- */
+function genMoney(level){
+  const kind = choice(['change','discount','multi','discount']);
+  if(kind==='change'){
+    let price, pay;
+    if(level==='gentle'){ price = rand(2,8); pay = 10; }
+    else if(level==='standard'){ price = rand(3,17) + choice([0,.25,.5,.75]); pay = price<10?10:20; }
+    else { price = rand(6,38) + choice([.05,.15,.35,.45,.65,.85,.99]); pay = price<20?20:50; }
+    const change = +(pay-price).toFixed(2);
+    return {cat:'money',
+      q:{en:`You buy a few groceries that come to ${money(price,'en')}. You hand over a ${money(pay,'en')} bill. How much change should you receive?`,
+         fr:`Vous achetez quelques provisions pour un total de ${money(price,'fr')}. Vous donnez un billet de ${money(pay,'fr')}. Combien devrait-on vous rendre?`},
+      a:{en:`${money(change,'en')} back.`,
+         fr:`On devrait vous rendre ${money(change,'fr')}.`}};
+  }
+  if(kind==='discount'){
+    let P,pct;
+    if(level==='gentle'){ P = rand(2,8)*10; pct = choice([10,50]); }
+    else if(level==='standard'){ P = rand(4,18)*5; pct = choice([10,20,25]); }
+    else { P = rand(25,140); pct = choice([15,20,30,35]); }
+    const save = +(P*pct/100).toFixed(2);
+    const sale = +(P-save).toFixed(2);
+    return {cat:'money',
+      q:{en:`A coat is marked ${money(P,'en')} and is ${pct}% off. What is the sale price?`,
+         fr:`Un manteau est affiché à ${money(P,'fr')} et bénéficie d’un rabais de ${pct} %. Quel est le prix soldé?`},
+      a:{en:`${pct}% of ${money(P,'en')} is ${money(save,'en')}, so the sale price is ${money(sale,'en')}.`,
+         fr:`${pct} % de ${money(P,'fr')} font ${money(save,'fr')}, donc le prix soldé est ${money(sale,'fr')}.`}};
+  }
+  // multi
+  let n1,p1,n2,p2;
+  if(level==='gentle'){ n1=rand(2,4); p1=rand(2,5); n2=0; }
+  else if(level==='standard'){ n1=rand(3,5); p1=choice([1.5,2,2.5,3]); n2=rand(2,3); p2=choice([2,3,4]); }
+  else { n1=rand(4,7); p1=choice([1.75,2.4,2.95,3.25]); n2=rand(2,4); p2=choice([1.2,1.85,2.6]); }
+  let total = n1*p1 + (n2?n2*p2:0);
+  total = +total.toFixed(2);
+  const q = n2
+    ? {en:`At the market, ${n1} jars of jam cost ${money(p1,'en')} each and ${n2} loaves of bread cost ${money(p2,'en')} each. What is the total?`,
+       fr:`Au marché, ${num(n1,'fr')} pots de confiture coûtent ${money(p1,'fr')} chacun et ${num(n2,'fr')} pains coûtent ${money(p2,'fr')} chacun. Quel est le total?`}
+    : {en:`You buy ${n1} tins of soup at ${money(p1,'en')} each. What do they cost altogether?`,
+       fr:`Vous achetez ${num(n1,'fr')} boîtes de soupe à ${money(p1,'fr')} chacune. Combien coûtent-elles en tout?`};
+  const a = n2
+    ? {en:`${n1} × ${money(p1,'en')} = ${money(n1*p1,'en')}; ${n2} × ${money(p2,'en')} = ${money(n2*p2,'en')}. Total: ${money(total,'en')}.`,
+       fr:`${num(n1,'fr')} × ${money(p1,'fr')} = ${money(n1*p1,'fr')}; ${num(n2,'fr')} × ${money(p2,'fr')} = ${money(n2*p2,'fr')}. Total : ${money(total,'fr')}.`}
+    : {en:`${n1} × ${money(p1,'en')} = ${money(total,'en')}.`,
+       fr:`${num(n1,'fr')} × ${money(p1,'fr')} = ${money(total,'fr')}.`};
+  return {cat:'money',q,a};
+}
+
+/* ---- 2. Mental-math shortcuts ---- */
+function genShortcuts(level){
+  const kinds = level==='gentle'
+    ? ['times5','sum','times25']
+    : level==='standard'
+      ? ['times25','times99','sum','times5','double']
+      : ['times25','times99','sum','double','times11'];
+  const kind = choice(kinds);
+
+  if(kind==='times25'){
+    const m = level==='gentle'?choice([4,8,12]):level==='standard'?choice([12,16,24,20,32]):choice([16,24,28,36,44]);
+    const res = 25*m;
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>25 × ${m}</b> in your head. Tip: 25 × 4 = 100, so build it up in fours.`,
+         fr:`Calculez <b>25 × ${m}</b> de tête. Astuce : 25 × 4 = 100, donc procédez par groupes de quatre.`},
+      a:{en:`25 × ${m} = 25 × 4 × ${m/4} = 100 × ${m/4} = <b>${res}</b>.`,
+         fr:`25 × ${m} = 25 × 4 × ${m/4} = 100 × ${m/4} = <b>${res}</b>.`}};
+  }
+  if(kind==='times99'){
+    const k = level==='sharp'?rand(6,18):rand(3,9);
+    const res = 99*k;
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>99 × ${k}</b> the quick way. Tip: 99 is just 100 − 1.`,
+         fr:`Calculez <b>99 × ${k}</b> par un raccourci. Astuce : 99, c’est 100 − 1.`},
+      a:{en:`99 × ${k} = (100 × ${k}) − ${k} = ${100*k} − ${k} = <b>${res}</b>.`,
+         fr:`99 × ${k} = (100 × ${k}) − ${k} = ${100*k} − ${k} = <b>${res}</b>.`}};
+  }
+  if(kind==='times11'){
+    const k = rand(13,89);
+    const res = 11*k;
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>11 × ${k}</b>. Tip: 11 is 10 + 1.`,
+         fr:`Calculez <b>11 × ${k}</b>. Astuce : 11, c’est 10 + 1.`},
+      a:{en:`11 × ${k} = (10 × ${k}) + ${k} = ${10*k} + ${k} = <b>${res}</b>.`,
+         fr:`11 × ${k} = (10 × ${k}) + ${k} = ${10*k} + ${k} = <b>${res}</b>.`}};
+  }
+  if(kind==='times5'){
+    const k = level==='gentle'?rand(6,24):rand(24,88);
+    const res = 5*k;
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>${k} × 5</b>. Tip: multiply by 10, then take half.`,
+         fr:`Calculez <b>${k} × 5</b>. Astuce : multipliez par 10, puis prenez la moitié.`},
+      a:{en:`${k} × 10 = ${10*k}; half of that is <b>${res}</b>.`,
+         fr:`${k} × 10 = ${10*k}; la moitié fait <b>${res}</b>.`}};
+  }
+  if(kind==='double'){
+    const a1 = choice([16,18,24,14,22,26]);
+    const res = 50*a1;
+    return {cat:'shortcuts',
+      q:{en:`Work out <b>50 × ${a1}</b>. Tip: 50 is half of 100.`,
+         fr:`Calculez <b>50 × ${a1}</b>. Astuce : 50, c’est la moitié de 100.`},
+      a:{en:`50 × ${a1} = (100 × ${a1}) ÷ 2 = ${100*a1} ÷ 2 = <b>${res}</b>.`,
+         fr:`50 × ${a1} = (100 × ${a1}) ÷ 2 = ${100*a1} ÷ 2 = <b>${res}</b>.`}};
+  }
+  // sum 1..n via pairs
+  const n = level==='gentle'?choice([10,10,20]):level==='standard'?choice([20,50,100]):choice([50,100,60,80]);
+  const res = n*(n+1)/2;
+  const pairs = n/2;
+  return {cat:'shortcuts',
+    q:{en:`Add up every whole number from 1 to ${n}. Tip: pair the ends — 1 + ${n}, 2 + ${n-1}, and so on.`,
+       fr:`Additionnez tous les nombres entiers de 1 à ${n}. Astuce : associez les extrémités — 1 + ${n}, 2 + ${n-1}, et ainsi de suite.`},
+    a:{en:`Each pair makes ${n+1}, and there are ${pairs} pairs: ${pairs} × ${n+1} = <b>${res}</b>.`,
+       fr:`Chaque paire donne ${n+1}, et il y a ${pairs} paires : ${pairs} × ${n+1} = <b>${res}</b>.`}};
+}
+
+/* ---- 3. Number patterns ("find the rule") ---- */
+function genPatterns(level){
+  const kinds = level==='gentle'
+    ? ['add','double','count']
+    : level==='standard'
+      ? ['double','squares','fib','triangular','add']
+      : ['squares','fib','triangular','geometric','alt'];
+  const kind = choice(kinds);
+  let seq=[], next, ruleEn, ruleFr;
+
+  if(kind==='add'){
+    const start=rand(1,6), step=rand(2,6);
+    for(let i=0;i<5;i++) seq.push(start+i*step);
+    next=start+5*step; ruleEn=`add ${step} each time`; ruleFr=`on ajoute ${step} à chaque fois`;
+  } else if(kind==='count'){
+    const start=rand(2,5);
+    for(let i=0;i<5;i++) seq.push(start*(i+1));
+    next=start*6; ruleEn=`count up in ${start}s`; ruleFr=`on compte par bonds de ${start}`;
+  } else if(kind==='double'){
+    const start=rand(2,5);
+    seq=[start]; for(let i=1;i<5;i++) seq.push(seq[i-1]*2);
+    next=seq[4]*2; ruleEn=`double each time`; ruleFr=`on double à chaque fois`;
+  } else if(kind==='squares'){
+    for(let i=1;i<=5;i++) seq.push(i*i);
+    next=36; ruleEn=`the square numbers (1×1, 2×2, 3×3 …)`; ruleFr=`les carrés (1×1, 2×2, 3×3 …)`;
+  } else if(kind==='triangular'){
+    let t=0; for(let i=1;i<=5;i++){t+=i;seq.push(t);}
+    next=seq[4]+6; ruleEn=`the triangular numbers — add 1, then 2, then 3 …`; ruleFr=`les nombres triangulaires — on ajoute 1, puis 2, puis 3 …`;
+  } else if(kind==='fib'){
+    const a=rand(1,3), b=rand(a+1,a+4);
+    seq=[a,b]; for(let i=2;i<6;i++) seq.push(seq[i-1]+seq[i-2]);
+    next=seq[5]; seq=seq.slice(0,5);
+    ruleEn=`each number is the sum of the two before it (Fibonacci style)`; ruleFr=`chaque nombre est la somme des deux précédents (à la Fibonacci)`;
+  } else if(kind==='geometric'){
+    const start=rand(2,4), r=3;
+    seq=[start]; for(let i=1;i<5;i++) seq.push(seq[i-1]*r);
+    next=seq[4]*r; ruleEn=`multiply by 3 each time`; ruleFr=`on multiplie par 3 à chaque fois`;
+  } else { // alt: +a, +b alternating
+    const start=rand(1,4), a=rand(2,4), b=rand(5,7);
+    seq=[start]; for(let i=1;i<5;i++) seq.push(seq[i-1]+(i%2? a : b));
+    next=seq[4]+(5%2? a : b);
+    ruleEn=`add ${a}, then ${b}, over and over`; ruleFr=`on ajoute ${a}, puis ${b}, en alternance`;
+  }
+
+  const shown = seq.join(', ')+', ___';
+  return {cat:'patterns',
+    q:{en:`Look at this sequence: <b>${shown}</b><span class="work">What number comes next, and what is the rule?</span>`,
+       fr:`Observez cette suite : <b>${shown}</b><span class="work">Quel nombre vient ensuite, et quelle est la règle?</span>`},
+    a:{en:`Next is <b>${next}</b> — the rule is: ${ruleEn}.`,
+       fr:`Le suivant est <b>${next}</b> — la règle : ${ruleFr}.`}};
+}
+
+/* ---- 4. Adult word problems ---- */
+function genWords(level){
+  const kind = choice(['time','recipe','garden','time','garden']);
+  if(kind==='time'){
+    let startMin, dur;
+    if(level==='gentle'){ startMin = rand(8,10)*60 + choice([0,30]); dur = choice([30,45,60,90]); }
+    else if(level==='standard'){ startMin = rand(8,17)*60 + choice([0,15,30,45]); dur = choice([75,90,105,120,150]); }
+    else { startMin = rand(7,20)*60 + choice([10,20,25,40,50]); dur = choice([95,130,145,175,200]); }
+    const end = startMin+dur;
+    const h = Math.floor(dur/60), m = dur%60;
+    const durTextEn = (h?`${h} hour${h>1?'s':''}`:'') + (h&&m?' and ':'') + (m?`${m} minutes`:'');
+    const durTextFr = (h?`${h} heure${h>1?'s':''}`:'') + (h&&m?' et ':'') + (m?`${m} minutes`:'');
+    return {cat:'words',
+      q:{en:`A medical appointment starts at ${fmtTime(startMin,'en')} and lasts ${durTextEn}. At what time does it finish?`,
+         fr:`Un rendez-vous médical commence à ${fmtTime(startMin,'fr')} et dure ${durTextFr}. À quelle heure se termine-t-il?`},
+      a:{en:`It finishes at <b>${fmtTime(end,'en')}</b>.`,
+         fr:`Il se termine à <b>${fmtTime(end,'fr')}</b>.`}};
+  }
+  if(kind==='recipe'){
+    const ingEn = choice([['flour','cups'],['sugar','cups'],['milk','cups'],['butter','tablespoons']]);
+    const ingFr = {flour:'de farine',sugar:'de sucre',milk:'de lait',butter:'de beurre'}[ingEn[0]];
+    const nameFr = {flour:'farine',sugar:'sucre',milk:'lait',butter:'beurre'}[ingEn[0]];
+    const unitEn = ingEn[1], unitFr = ingEn[0]==='butter'?'cuillères à soupe':'tasses';
+    let baseServes, want, baseAmt;
+    if(level==='gentle'){ baseServes=4; want=8; baseAmt=choice([1,2,3]); }
+    else if(level==='standard'){ baseServes=4; want=6; baseAmt=choice([2,3,1.5]); }
+    else { baseServes=6; want=choice([4,9,15]); baseAmt=choice([3,4,2.5]); }
+    const scaled = +(baseAmt*want/baseServes).toFixed(2);
+    return {cat:'words',
+      q:{en:`A recipe for ${baseServes} people uses ${num(baseAmt,'en')} ${unitEn} of ${ingEn[0]}. How much ${ingEn[0]} do you need to serve ${want} people?`,
+         fr:`Une recette pour ${baseServes} personnes utilise ${num(baseAmt,'fr')} ${unitFr} ${ingFr}. Quelle quantité de ${nameFr} faut-il pour servir ${want} personnes?`},
+      a:{en:`Scale by ${want}/${baseServes}: ${num(baseAmt,'en')} × ${want} ÷ ${baseServes} = <b>${num(scaled,'en')} ${unitEn}</b>.`,
+         fr:`On multiplie par ${want}/${baseServes} : ${num(baseAmt,'fr')} × ${want} ÷ ${baseServes} = <b>${num(scaled,'fr')} ${unitFr}</b>.`}};
+  }
+  // garden
+  let L,W;
+  if(level==='gentle'){ L=rand(3,6); W=rand(2,4); }
+  else if(level==='standard'){ L=rand(5,12); W=rand(3,8); }
+  else { L=rand(8,18); W=rand(4,13); }
+  const area=L*W, per=2*(L+W);
+  const askBoth = level!=='gentle';
+  return {cat:'words',
+    q:{en:`A rectangular vegetable garden measures ${L} m by ${W} m. What is its area${askBoth?', and how much fencing would go all the way around it':''}?`,
+       fr:`Un potager rectangulaire mesure ${L} m sur ${W} m. Quelle est son aire${askBoth?', et quelle longueur de clôture en ferait tout le tour':''}?`},
+    a:{en:`Area = ${L} × ${W} = <b>${area} m²</b>.${askBoth?` Perimeter = 2 × (${L} + ${W}) = <b>${per} m</b> of fencing.`:''}`,
+       fr:`Aire = ${L} × ${W} = <b>${area} m²</b>.${askBoth?` Périmètre = 2 × (${L} + ${W}) = <b>${per} m</b> de clôture.`:''}`}};
+}
+
+/* ---- 5. Estimation (no single exact answer) ---- */
+const ESTIMATION = [
+  {q:{en:`Without working it out exactly, about how many minutes are there in a full day?`,
+      fr:`Sans faire le calcul exact, environ combien de minutes compte une journée entière?`},
+   a:{en:`Reason: 24 hours × 60 minutes ≈ <b>1,440 minutes</b>. Any estimate near 1,400–1,500 is excellent.`,
+      fr:`Raisonnement : 24 heures × 60 minutes ≈ <b>1 440 minutes</b>. Une estimation autour de 1 400 à 1 500 est excellente.`}},
+  {q:{en:`If a resting heart beats about 70 times a minute, roughly how many beats is that in one hour?`,
+      fr:`Si un cœur au repos bat environ 70 fois par minute, à peu près combien de battements cela fait-il en une heure?`},
+   a:{en:`Reason: 70 × 60 ≈ <b>4,200 beats</b> an hour. Anywhere near 4,000–4,500 is a fine estimate.`,
+      fr:`Raisonnement : 70 × 60 ≈ <b>4 200 battements</b> par heure. Une valeur proche de 4 000 à 4 500 est une bonne estimation.`}},
+  {q:{en:`About how many times might a person blink in a single hour of being awake?`,
+      fr:`Environ combien de fois une personne cligne-t-elle des yeux en une heure d’éveil?`},
+   a:{en:`Reason: roughly 15–20 blinks a minute × 60 ≈ <b>900–1,200 blinks</b>. There is no single exact number.`,
+      fr:`Raisonnement : environ 15 à 20 clignements par minute × 60 ≈ <b>900 à 1 200 clignements</b>. Il n’y a pas de réponse unique.`}},
+  {q:{en:`Taking a comfortable breath about 15 times a minute, roughly how many breaths in a day?`,
+      fr:`En respirant confortablement environ 15 fois par minute, à peu près combien de respirations en une journée?`},
+   a:{en:`Reason: 15 × 60 × 24 ≈ <b>21,600 breaths</b>. Anything around 20,000 shows good reasoning.`,
+      fr:`Raisonnement : 15 × 60 × 24 ≈ <b>21 600 respirations</b>. Une estimation autour de 20 000 témoigne d’un bon raisonnement.`}},
+  {q:{en:`If a comfortable walking pace is about 100 steps a minute, roughly how many steps in a half-hour stroll?`,
+      fr:`Si un rythme de marche confortable est d’environ 100 pas par minute, à peu près combien de pas en une promenade d’une demi-heure?`},
+   a:{en:`Reason: 100 × 30 ≈ <b>3,000 steps</b>. An estimate between 2,500 and 3,500 is very reasonable.`,
+      fr:`Raisonnement : 100 × 30 ≈ <b>3 000 pas</b>. Une estimation entre 2 500 et 3 500 est tout à fait raisonnable.`}},
+  {q:{en:`A paperback page holds roughly 300 words. About how many words are in a 250-page novel?`,
+      fr:`Une page de livre de poche contient environ 300 mots. À peu près combien de mots compte un roman de 250 pages?`},
+   a:{en:`Reason: 300 × 250 ≈ <b>75,000 words</b>. Any figure near 60,000–90,000 is a sound estimate.`,
+      fr:`Raisonnement : 300 × 250 ≈ <b>75 000 mots</b>. Une valeur proche de 60 000 à 90 000 est une estimation solide.`}},
+  {q:{en:`About how many days have you been alive by age 70? (Estimate, don't count.)`,
+      fr:`Environ combien de jours a-t-on vécu à 70 ans? (Estimez, ne comptez pas.)`},
+   a:{en:`Reason: 70 × 365 ≈ <b>25,550 days</b>. Around 25,000 is an excellent estimate.`,
+      fr:`Raisonnement : 70 × 365 ≈ <b>25 550 jours</b>. Environ 25 000 est une excellente estimation.`}}
+];
+let _estIdx = [];
+function genEstimation(level){
+  if(_estIdx.length===0) _estIdx = shuffle(ESTIMATION.map((_,i)=>i));
+  const e = ESTIMATION[_estIdx.pop()];
+  return {cat:'estimation',
+    q:{en:e.q.en+`<span class="work">There is no single exact answer — the goal is a sensible estimate and the reasoning behind it.</span>`,
+       fr:e.q.fr+`<span class="work">Il n’y a pas de réponse unique — le but est une estimation sensée et le raisonnement qui la soutient.</span>`},
+    a:e.a};
+}
+
+/* ---- 6. Logic puzzles (curated fixed bank) ---- */
+function msqTable(grid){ // grid: 3x3 array, null = blank
+  let h='<table class="msq"><tbody>';
+  for(let r=0;r<3;r++){ h+='<tr>'; for(let c=0;c<3;c++){ const v=grid[r][c]; h+= v==null?'<td class="blank">?</td>':`<td>${v}</td>`; } h+='</tr>'; }
+  return h+'</tbody></table>';
+}
+const MAGIC = [
+  {sol:[[8,1,6],[3,5,7],[4,9,2]], blanks:[[0,1],[1,0],[1,2],[2,1]]},
+  {sol:[[6,7,2],[1,5,9],[8,3,4]], blanks:[[0,0],[0,2],[2,0],[2,2]]},
+  {sol:[[2,9,4],[7,5,3],[6,1,8]], blanks:[[0,1],[1,1],[2,1]]},
+  {sol:[[4,3,8],[9,5,1],[2,7,6]], blanks:[[0,0],[1,0],[2,2],[0,2]]}
+];
+const HANDSHAKE = [ {n:5},{n:6},{n:8},{n:4},{n:7},{n:10} ];
+let _magicIdx=[], _hsIdx=[];
+function genLogic(level){
+  const useMagic = level==='gentle' ? Math.random()<0.4 : Math.random()<0.6;
+  if(useMagic){
+    if(_magicIdx.length===0) _magicIdx = shuffle(MAGIC.map((_,i)=>i));
+    const m = MAGIC[_magicIdx.pop()];
+    const grid = m.sol.map(r=>r.slice());
+    m.blanks.forEach(([r,c])=>{grid[r][c]=null;});
+    return {cat:'logic',
+      q:{en:`Fill in the missing numbers so that each row, each column, and both diagonals add up to 15. Use the digits 1–9, each exactly once.`+msqTable(grid),
+         fr:`Complétez les cases manquantes pour que chaque ligne, chaque colonne et les deux diagonales totalisent 15. Utilisez les chiffres de 1 à 9, chacun une seule fois.`+msqTable(grid)},
+      a:{en:`The completed square:`+msqTable(m.sol),
+         fr:`Le carré complété :`+msqTable(m.sol)}};
+  }
+  // handshake
+  if(_hsIdx.length===0) _hsIdx = shuffle(HANDSHAKE.map((_,i)=>i));
+  const n = HANDSHAKE[_hsIdx.pop()].n;
+  const res = n*(n-1)/2;
+  return {cat:'logic',
+    q:{en:`${n} people meet at a gathering, and every person shakes hands once with every other person. How many handshakes take place in all?`,
+       fr:`${n} personnes se rencontrent lors d’une réunion, et chacune serre la main une seule fois à chacune des autres. Combien de poignées de main ont lieu en tout?`},
+    a:{en:`Each of the ${n} people shakes ${n-1} hands, but that counts every handshake twice: ${n} × ${n-1} ÷ 2 = <b>${res} handshakes</b>.`,
+       fr:`Chacune des ${n} personnes serre ${n-1} mains, mais cela compte chaque poignée deux fois : ${n} × ${n-1} ÷ 2 = <b>${res} poignées de main</b>.`}};
+}
+
+/* ============================================================
+   Category registry + localized labels
+   ============================================================ */
+const CATEGORIES = [
+  {id:'money',      gen:genMoney,      name:{en:'Practical money',      fr:'Argent au quotidien'},
+   desc:{en:'Change, discounts, buying several items', fr:'Monnaie, rabais, achat de plusieurs articles'}},
+  {id:'shortcuts',  gen:genShortcuts,  name:{en:'Mental-math shortcuts', fr:'Raccourcis de calcul mental'},
+   desc:{en:'Clever ways to work sums out in your head', fr:'Astuces pour calculer de tête'}},
+  {id:'patterns',   gen:genPatterns,   name:{en:'Number patterns',      fr:'Suites de nombres'},
+   desc:{en:'Doubling, squares, Fibonacci — find the rule', fr:'Doubles, carrés, Fibonacci — trouver la règle'}},
+  {id:'words',      gen:genWords,      name:{en:'Word problems',        fr:'Problèmes concrets'},
+   desc:{en:'Elapsed time, recipe scaling, garden sizes', fr:'Durées, ajuster une recette, dimensions de jardin'}},
+  {id:'estimation', gen:genEstimation, name:{en:'Estimation',           fr:'Estimation'},
+   desc:{en:'Sensible ballpark figures — no exact answer', fr:'Ordres de grandeur — pas de réponse exacte'}},
+  {id:'logic',      gen:genLogic,      name:{en:'Logic puzzles',        fr:'Casse-tête logiques'},
+   desc:{en:'Magic squares and the handshake problem', fr:'Carrés magiques et le problème des poignées de main'}}
+];
+
+const UI = {
+  title:{en:'Numbers &amp; Reasoning', fr:'Nombres et raisonnement'},
+  subtitle:{en:'A practice set for keeping the mind active', fr:'Une série d’exercices pour garder l’esprit actif'},
+  levelLabel:{en:'Difficulty', fr:'Niveau'},
+  catsLabel:{en:'Categories', fr:'Catégories'},
+  levels:{gentle:{en:'Gentle',fr:'Doux'}, standard:{en:'Standard',fr:'Standard'}, sharp:{en:'Sharp',fr:'Corsé'}},
+  newBtn:{en:'New set', fr:'Nouvelle série'},
+  showBtn:{en:'Show answers', fr:'Afficher les réponses'},
+  hideBtn:{en:'Hide answers', fr:'Masquer les réponses'},
+  printBtn:{en:'Print', fr:'Imprimer'},
+  sheetTitle:{en:'Practice Set', fr:'Série d’exercices'},
+  answerKey:{en:'Answer Key', fr:'Corrigé'},
+  meta:{en:(n,lv,d)=>`${n} problems · ${lv} · ${d}`, fr:(n,lv,d)=>`${n} problèmes · ${lv} · ${d}`},
+  aLabel:{en:'Answer', fr:'Réponse'},
+  empty:{en:'Choose at least one category above, then press “New set”.', fr:'Choisissez au moins une catégorie ci-dessus, puis appuyez sur « Nouvelle série ».'},
+  foot:{en:'Made for calm, unhurried practice. Print a set, work through it together, reveal the answers when ready.',
+        fr:'Conçu pour une pratique calme et sans hâte. Imprimez une série, faites-la ensemble, dévoilez les réponses au bon moment.'},
+  dateFmt:{en:d=>d.toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'}),
+           fr:d=>d.toLocaleDateString('fr-CA',{year:'numeric',month:'long',day:'numeric'})}
+};
+
+/* ============================================================
+   Set generation
+   ============================================================ */
+function generateSet(){
+  const enabled = CATEGORIES.filter(c=>state.cats[c.id]);
+  if(enabled.length===0){ state.problems=[]; return; }
+  const target = rand(8,10);
+  const out = [];
+  let pool = shuffle(enabled.slice());
+  let i=0, guard=0;
+  while(out.length<target && guard<400){
+    guard++;
+    const cat = pool[i % pool.length];
+    const p = cat.gen(state.level);
+    // avoid a duplicate question within the set (strip tags for comparison)
+    const key = p.q.en.replace(/<[^>]+>/g,'').trim();
+    if(!out.some(o=>o.q.en.replace(/<[^>]+>/g,'').trim()===key)){
+      out.push(p); i++;
+      if(i % pool.length===0) pool = shuffle(pool);
     }
   }
+  state.problems = out;
+}
 
-  // A longer, more exciting fanfare for winning a prize.
-  function playFanfare() {
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50]; // rising "ta-da!"
-      notes.forEach((freq, i) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "triangle";
-        osc.frequency.value = freq;
-        const start = audioCtx.currentTime + i * 0.14;
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.35, start + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.45);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(start);
-        osc.stop(start + 0.5);
-      });
-    } catch (e) {
-      // Silent fallback.
-    }
+/* ============================================================
+   Rendering
+   ============================================================ */
+function catName(id){ const c=CATEGORIES.find(x=>x.id===id); return c.name[state.lang]; }
+
+function render(){
+  const L = state.lang;
+  document.documentElement.lang = L;
+  document.getElementById('ui-title').innerHTML = UI.title[L];
+  document.getElementById('ui-subtitle').textContent = UI.subtitle[L];
+  document.getElementById('ui-level-label').textContent = UI.levelLabel[L];
+  document.getElementById('ui-cats-label').textContent = UI.catsLabel[L];
+  document.getElementById('ui-new').textContent = UI.newBtn[L];
+  document.getElementById('ui-toggle').textContent = state.showAnswers?UI.hideBtn[L]:UI.showBtn[L];
+  document.getElementById('ui-print').textContent = UI.printBtn[L];
+  document.getElementById('ui-sheet-title').textContent = UI.sheetTitle[L];
+  document.getElementById('ui-answerkey-title').textContent = UI.answerKey[L];
+  document.getElementById('ui-foot').textContent = UI.foot[L];
+
+  document.querySelectorAll('#levels button').forEach(b=>{
+    const lv=b.dataset.level;
+    b.textContent = UI.levels[lv][L];
+    b.classList.toggle('active', lv===state.level);
+  });
+
+  document.getElementById('lang-en').classList.toggle('active', L==='en');
+  document.getElementById('lang-fr').classList.toggle('active', L==='fr');
+
+  const dateStr = UI.dateFmt[L](new Date());
+  document.getElementById('ui-sheet-meta').textContent =
+    state.problems.length ? UI.meta[L](state.problems.length, UI.levels[state.level][L], dateStr) : '';
+
+  const ol = document.getElementById('problems');
+  const key = document.getElementById('answerkey-list');
+  ol.innerHTML=''; key.innerHTML='';
+
+  if(state.problems.length===0){
+    ol.innerHTML = `<div class="empty">${UI.empty[L]}</div>`;
+    refreshCatLabels();
+    return;
   }
 
-  // A soft, warm two-note tone for a "good try" (never a harsh buzzer).
-  function playSoftTone() {
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [440.00, 392.00]; // gentle, reassuring descending step
-      notes.forEach((freq, i) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        const start = audioCtx.currentTime + i * 0.18;
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.22, start + 0.04);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.4);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(start);
-        osc.stop(start + 0.45);
-      });
-    } catch (e) {
-      // Silent fallback.
-    }
-  }
+  state.problems.forEach((p,idx)=>{
+    const li=document.createElement('li');
+    li.innerHTML =
+      `<span class="p-tag">${catName(p.cat)}</span>`+
+      `<div class="p-q">${p.q[L]}</div>`+
+      `<div class="p-answer"><span class="a-label">${UI.aLabel[L]}</span>${p.a[L]}</div>`;
+    ol.appendChild(li);
 
-  // ---------- Helpers ----------
-  function money(value) {
-    return CURRENCY + value.toFixed(2);
-  }
+    const kli=document.createElement('li');
+    kli.value = idx+1;
+    kli.innerHTML = `<b>${catName(p.cat)}.</b> ${p.a[L]}`;
+    key.appendChild(kli);
+  });
 
-  // Make a "guess price" that sits near the real price. How close it
-  // is depends on the chosen difficulty level (closer = harder).
-  function generateShown(price) {
-    const lv = LEVELS[currentLevel];
-    const margin = lv.marginLow + Math.random() * (lv.marginHigh - lv.marginLow);
-    const goUp = Math.random() < 0.5;
-    let shown = goUp ? price * (1 + margin) : price * (1 - margin);
-    shown = Math.round(shown * 100) / 100;
-    // Safety: never zero/negative, and never identical to the real price.
-    if (shown <= 0) shown = 0.05;
-    if (shown === price) shown = goUp ? price + 0.05 : Math.max(0.05, price - 0.05);
-    return shown;
-  }
+  refreshCatLabels();
+}
 
-  // Update the gentle progress indicator in the top bar.
-  function updateProgress() {
-    const t = TEXT[lang];
-    const el = document.getElementById("progress");
-    if (!currentLevel) { el.textContent = ""; return; }
-    const lv = LEVELS[currentLevel];
-    if (lv.prizeBy === "rounds") {
-      el.textContent = t.rounds + rounds;            // "Rounds played: 3"
-    } else if (lv.prizeBy === "correct") {
-      el.textContent = "⭐ " + correctToward + " / " + lv.needed;
-    } else {
-      el.textContent = "🔥 " + streak + " / " + lv.needed;
-    }
-  }
+/* ============================================================
+   Controls
+   ============================================================ */
+function setLang(l){ state.lang=l; render(); }
+function setLevel(l){ state.level=l; newSet(); }
+function toggleAnswers(){
+  state.showAnswers=!state.showAnswers;
+  document.body.classList.toggle('show-answers', state.showAnswers);
+  render();
+}
+function newSet(){ generateSet(); render(); }
 
-  // Make a fresh shuffled order so products don't repeat in a row.
-  function shuffle() {
-    order = PRODUCTS.map((_, i) => i);
-    for (let i = order.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [order[i], order[j]] = [order[j], order[i]];
-    }
-    position = 0;
-  }
+function buildCats(){
+  const box=document.getElementById('cats');
+  box.innerHTML='';
+  CATEGORIES.forEach(c=>{
+    const lab=document.createElement('label');
+    lab.className='cat'+(state.cats[c.id]?' on':'');
+    lab.innerHTML =
+      `<input type="checkbox" ${state.cats[c.id]?'checked':''}>`+
+      `<span><span class="cat-name" data-name="${c.id}"></span><br><span class="cat-desc" data-desc="${c.id}"></span></span>`;
+    const cb=lab.querySelector('input');
+    cb.addEventListener('change',()=>{
+      state.cats[c.id]=cb.checked;
+      lab.classList.toggle('on',cb.checked);
+      newSet();
+    });
+    box.appendChild(lab);
+  });
+  refreshCatLabels();
+}
+function refreshCatLabels(){
+  CATEGORIES.forEach(c=>{
+    document.querySelectorAll(`[data-name="${c.id}"]`).forEach(el=>el.textContent=c.name[state.lang]);
+    document.querySelectorAll(`[data-desc="${c.id}"]`).forEach(el=>el.textContent=c.desc[state.lang]);
+  });
+}
 
-  // ---------- Apply the current language to all on-screen text ----------
-  function applyLanguage() {
-    const t = TEXT[lang];
-    document.documentElement.lang = lang;
-
-    // Top bar + start screen labels.
-    document.getElementById("langBtn").textContent = t.langButton;
-    document.getElementById("startTitle").textContent = t.title;
-    document.getElementById("chooseLevel").textContent = t.chooseLevel;
-    document.getElementById("lvlEasy").textContent = t.lvlEasy;
-    document.getElementById("lvlEasyDesc").textContent = t.lvlEasyDesc;
-    document.getElementById("lvlMedium").textContent = t.lvlMedium;
-    document.getElementById("lvlMediumDesc").textContent = t.lvlMediumDesc;
-    document.getElementById("lvlHard").textContent = t.lvlHard;
-    document.getElementById("lvlHardDesc").textContent = t.lvlHardDesc;
-
-    // Play + reveal + prize labels.
-    document.getElementById("pricePrompt").textContent = t.prompt;
-    document.getElementById("btnMore").textContent = t.more;
-    document.getElementById("btnLess").textContent = t.less;
-    document.getElementById("btnNext").textContent = t.next;
-    document.getElementById("prizeCheer").textContent = t.prizeCheer;
-    document.getElementById("prizeIntro").textContent = t.prizeIntro;
-    document.getElementById("btnContinue").textContent = t.prizeContinue;
-
-    updateProgress();
-
-    // Refresh whichever play screen is currently visible.
-    if (current) {
-      document.getElementById("guessName").textContent = current[lang];
-    }
-    if (onReveal) {
-      const failLevel = currentLevel && LEVELS[currentLevel].fail;
-      if (!failLevel) {
-        // Gentle level: always warm wording.
-        document.getElementById("revealCheer").textContent = t.cheers[lastCheerIndex];
-        document.getElementById("revealText").textContent =
-          lastWasRight ? t.gotIt : t.closeGuess;
-      } else if (lastWasRight) {
-        document.getElementById("revealCheer").textContent = t.rightCheer;
-        document.getElementById("revealText").textContent = t.rightText;
-      } else {
-        document.getElementById("revealCheer").textContent = t.wrongCheer;
-        document.getElementById("revealText").textContent = t.wrongText;
-      }
-    }
-    if (onPrize && prizeShowing >= 0) {
-      document.getElementById("prizeName").textContent = PRIZES[prizeShowing][lang];
-    }
-  }
-
-  // ---------- Switch between English and French ----------
-  function toggleLanguage() {
-    lang = (lang === "en") ? "fr" : "en";
-    applyLanguage();
-  }
-
-  // ---------- Show a product to guess ----------
-  function showGuess() {
-    if (position >= order.length) shuffle(); // reshuffle when we run out
-    current = PRODUCTS[order[position]];
-    position++;
-    currentShown = generateShown(current.price);
-    onReveal = false;
-
-    document.getElementById("guessEmoji").textContent = current.emoji;
-    document.getElementById("guessName").textContent = current[lang];
-    document.getElementById("guessShown").textContent = money(currentShown) + "?";
-
-    document.getElementById("startScreen").classList.add("hidden");
-    document.getElementById("guessScreen").classList.remove("hidden");
-    document.getElementById("revealScreen").classList.add("hidden");
-    document.getElementById("prizeScreen").classList.add("hidden");
-  }
-
-  // ---------- Player taps MORE or LESS ----------
-  function makeGuess(choice) {
-    const t = TEXT[lang];
-    const lv = LEVELS[currentLevel];
-
-    // Work out whether the guess matched the real price.
-    const realIsMore = current.price > currentShown;
-    lastWasRight = (choice === "more" && realIsMore) ||
-                   (choice === "less" && !realIsMore);
-
-    rounds++;
-
-    // ----- Feedback wording, icon, colour and sound -----
-    const icon  = document.getElementById("revealIcon");
-    const cheer = document.getElementById("revealCheer");
-
-    if (!lv.fail) {
-      // GENTLE level: no wrong answers. Always warm and celebratory.
-      lastCheerIndex = rounds % t.cheers.length;
-      cheer.textContent = t.cheers[lastCheerIndex];
-      cheer.style.color = "#2e7d32";
-      icon.textContent = "✅";
-      document.getElementById("revealText").textContent =
-        lastWasRight ? t.gotIt : t.closeGuess;
-      playChime();
-    } else if (lastWasRight) {
-      // MEDIUM / SHARPER, correct: a clear, happy "yes!"
-      cheer.textContent = t.rightCheer;
-      cheer.style.color = "#2e7d32";
-      icon.textContent = "✅";
-      document.getElementById("revealText").textContent = t.rightText;
-      playChime();
-    } else {
-      // MEDIUM / SHARPER, not quite: kind and encouraging, never harsh.
-      cheer.textContent = t.wrongCheer;
-      cheer.style.color = "#ef6c00";   // warm amber, not alarming red
-      icon.textContent = "💛";
-      document.getElementById("revealText").textContent = t.wrongText;
-      playSoftTone();
-    }
-
-    document.getElementById("revealEmoji").textContent = current.emoji;
-    document.getElementById("revealPrice").textContent = money(current.price);
-
-    // ----- Prize progress, depending on the level -----
-    if (lv.prizeBy === "rounds") {
-      // Won just by taking part.
-      if (rounds % lv.needed === 0) awardPrize();
-    } else if (lv.prizeBy === "correct") {
-      // Won by getting answers right (a wrong one simply doesn't count).
-      if (lastWasRight) {
-        correctToward++;
-        if (correctToward >= lv.needed) { awardPrize(); correctToward = 0; }
-      }
-    } else { // "streak"
-      // Won by a run of correct answers. A miss gently resets the run —
-      // the kindest form of "fail": you just start a fresh streak.
-      if (lastWasRight) {
-        streak++;
-        if (streak >= lv.needed) { awardPrize(); streak = 0; }
-      } else {
-        streak = 0;
-      }
-    }
-
-    updateProgress();
-
-    // Switch to the reveal screen with a little pop.
-    onReveal = true;
-    const reveal = document.getElementById("revealScreen");
-    document.getElementById("guessScreen").classList.add("hidden");
-    reveal.classList.remove("hidden");
-    reveal.classList.remove("pop");
-    void reveal.offsetWidth; // restart the animation
-    reveal.classList.add("pop");
-  }
-
-  // ---------- Queue up the next prize to celebrate ----------
-  function awardPrize() {
-    pendingPrize = Math.min(prizesWon, PRIZES.length - 1);
-    prizesWon++;
-  }
-
-  // ---------- Move on after the reveal ----------
-  // If a prize is waiting, celebrate it first; otherwise next product.
-  function nextRound() {
-    if (pendingPrize >= 0) {
-      showPrize(pendingPrize);
-      pendingPrize = -1;
-    } else {
-      showGuess();
-    }
-  }
-
-  // ---------- Show the prize celebration ----------
-  function showPrize(index) {
-    const t = TEXT[lang];
-    const prize = PRIZES[index];
-    prizeShowing = index;
-    onReveal = false;
-    onPrize = true;
-
-    // Keep the best prize in the top-bar badge as a happy reminder.
-    if (index > latestPrizeIndex) latestPrizeIndex = index;
-    const badge = document.getElementById("prizeBadge");
-    document.getElementById("prizeBadgeEmoji").textContent = PRIZES[latestPrizeIndex].emoji;
-    badge.classList.remove("hidden");
-
-    document.getElementById("prizeCheer").textContent = t.prizeCheer;
-    document.getElementById("prizeIntro").textContent = t.prizeIntro;
-    document.getElementById("prizeEmoji").textContent = prize.emoji;
-    document.getElementById("prizeName").textContent = prize[lang];
-
-    document.getElementById("guessScreen").classList.add("hidden");
-    document.getElementById("revealScreen").classList.add("hidden");
-    const screen = document.getElementById("prizeScreen");
-    screen.classList.remove("hidden");
-
-    // Make the prize emoji wiggle excitedly.
-    const emoji = document.getElementById("prizeEmoji");
-    emoji.classList.remove("wiggle");
-    void emoji.offsetWidth;
-    emoji.classList.add("wiggle");
-
-    playFanfare();
-  }
-
-  // ---------- Carry on after celebrating a prize ----------
-  function continueFromPrize() {
-    onPrize = false;
-    showGuess();
-  }
-
-  // ---------- Begin a game at the chosen level ----------
-  function startGame(level) {
-    currentLevel = level;
-    // Fresh start for every new game.
-    rounds = 0;
-    correctToward = 0;
-    streak = 0;
-    prizesWon = 0;
-    latestPrizeIndex = -1;
-    pendingPrize = -1;
-    onReveal = false;
-    onPrize = false;
-
-    document.getElementById("homeBtn").classList.remove("hidden");
-    document.getElementById("prizeBadge").classList.add("hidden");
-
-    shuffle();
-    showGuess();
-    updateProgress();
-  }
-
-  // ---------- Return to the level-choosing screen ----------
-  function showStart() {
-    currentLevel = null;
-    current = null;
-    onReveal = false;
-    onPrize = false;
-
-    document.getElementById("startScreen").classList.remove("hidden");
-    document.getElementById("guessScreen").classList.add("hidden");
-    document.getElementById("revealScreen").classList.add("hidden");
-    document.getElementById("prizeScreen").classList.add("hidden");
-
-    document.getElementById("homeBtn").classList.add("hidden");
-    document.getElementById("prizeBadge").classList.add("hidden");
-    document.getElementById("progress").textContent = "";
-  }
-
-  // ---------- First load: show the level screen ----------
-  applyLanguage();
-  showStart();
+/* ============================================================
+   Init
+   ============================================================ */
+buildCats();
+newSet();
 </script>
-
 </body>
 </html>
