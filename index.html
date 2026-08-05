@@ -196,14 +196,20 @@
     font-family:inherit;font-size:19px;text-align:left;padding:12px 16px;border:1px solid var(--line);
     border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;
   }
-  .mc-opt:hover{border-color:var(--accent);}
-  .mc-opt.selected{border-color:var(--accent);background:var(--accent-soft);font-weight:700;}
+  .mc-opt:not(:disabled):hover{border-color:var(--accent);}
+  .mc-opt:disabled{cursor:default;}
   .mc-opt.correct{border-color:#2f7a4f;background:#e3f2e8;color:#1e5e39;font-weight:700;}
   .mc-opt.wrong{border-color:#a33;background:#f7e4e4;color:#8a2b2b;font-weight:700;}
   .practice-card .mc-opt{font-size:20px;}
+  .mc-feedback{
+    margin-top:12px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;
+  }
+  .mc-feedback.good{color:#1e5e39;}
+  .mc-feedback.try{color:var(--gold);}
   @media print{
     .mc-opt{border:1px solid #999 !important;background:#fff !important;color:#000 !important;font-weight:400 !important;}
     .mc-options{max-width:none;}
+    .mc-feedback{display:none !important;}
   }
 
   /* magic square grid */
@@ -1218,6 +1224,8 @@ const UI = {
   aLabel:{en:'Answer', fr:'Réponse'},
   yourAnswer:{en:'Your answer', fr:'Votre réponse'},
   chooseAnswer:{en:'Choose the answer', fr:'Choisissez la réponse'},
+  mcRight:{en:'That’s right.', fr:'C’est exact.'},
+  mcTry:{en:'Not quite — have another look.', fr:'Pas tout à fait — regardez encore.'},
   revealShow:{en:'Show answer', fr:'Afficher la réponse'},
   revealHide:{en:'Hide answer', fr:'Masquer la réponse'},
   empty:{en:'Choose at least one category above, then press “New set”.', fr:'Choisissez au moins une catégorie ci-dessus, puis appuyez sur « Nouvelle série ».'},
@@ -1401,25 +1409,47 @@ function saveGridCell(idx,key,val){ const p=state.problems[idx]; if(!p) return; 
 function savePracticeCell(key,val){ const p=state.current; if(!p) return; (p._grid||(p._grid={}))[key]=val.replace(/[^1-9]/g,''); }
 
 /* Multiple-choice option buttons. `onclick` builds the handler for option i.
-   Once the answer is revealed, the correct option turns green and a wrong pick red. */
+   Picking answers straight away: a correct pick turns green and settles the
+   question; a wrong pick is marked red and bows out, leaving the rest live so
+   the solver can try again. Revealing the answer settles it either way. */
 function mcHTML(p, revealed, onclick){
   const L = state.lang;
+  const wrong = p._wrong || [];
+  const done = revealed || p._solved;
   const opts = p.mc.values.map((v,i)=>{
-    const label = p.mc.fmt(v, L);
     let cls = 'mc-opt';
-    if(p._choice===v) cls += ' selected';
-    if(revealed){
-      if(v===p.mc.correct) cls = 'mc-opt correct';
-      else if(p._choice===v) cls = 'mc-opt wrong';
-    }
-    return `<button class="${cls}" ${onclick(i)}>${label}</button>`;
+    if(wrong.includes(v)) cls += ' wrong';
+    if(done && v===p.mc.correct) cls += ' correct';
+    const off = (done || wrong.includes(v)) ? ' disabled' : '';
+    return `<button class="${cls}"${off} ${onclick(i)}>${p.mc.fmt(v, L)}</button>`;
   }).join('');
-  return `<div class="mc-options">${opts}</div>`;
+  let feedback = '';
+  if(p._solved)          feedback = `<div class="mc-feedback good">${UI.mcRight[L]}</div>`;
+  else if(wrong.length)  feedback = `<div class="mc-feedback try">${UI.mcTry[L]}</div>`;
+  return `<div class="mc-options">${opts}</div>${feedback}`;
 }
 /* Should this problem show multiple choice? (Gentle/Standard, and it has options) */
 function useMC(p){ return state.level!=='sharp' && p.mc && !p.grid; }
-function chooseWS(idx,i){ const p=state.problems[idx]; if(p&&p.mc){ p._choice=p.mc.values[i]; render(); } }
-function choosePractice(i){ const p=state.current; if(p&&p.mc){ p._choice=p.mc.values[i]; render(); } }
+/* Record a pick. Returns true when it was the correct one. */
+function takePick(p, i){
+  const v = p.mc.values[i];
+  if(v===p.mc.correct){ p._solved = true; return true; }
+  const w = p._wrong || (p._wrong = []);
+  if(!w.includes(v)) w.push(v);
+  return false;
+}
+function chooseWS(idx,i){
+  const p = state.problems[idx];
+  if(!p || !p.mc || p._revealed || p._solved) return;
+  if(takePick(p,i)) p._revealed = true;   // show the worked answer once solved
+  render();
+}
+function choosePractice(i){
+  const p = state.current;
+  if(!p || !p.mc || state.reveal || p._solved) return;
+  if(takePick(p,i)) state.reveal = true;  // reveals the answer and offers "Next problem"
+  render();
+}
 
 /* Draw one fresh problem from the enabled categories, avoiding an immediate repeat */
 function pickProblem(){
