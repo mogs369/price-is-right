@@ -177,6 +177,19 @@
   .practice-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px;}
   .practice-actions .btn{font-size:17px;padding:13px 26px;}
 
+  /* ---------- Fillable answer box ---------- */
+  .p-response{margin-top:14px;}
+  .resp-label{
+    display:block;font-family:Arial,Helvetica,sans-serif;font-size:13px;letter-spacing:.5px;
+    text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin-bottom:6px;
+  }
+  .answer-input{
+    width:100%;max-width:520px;font-family:inherit;font-size:19px;color:var(--ink);
+    padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;
+  }
+  .answer-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .practice-card .answer-input{font-size:20px;}
+
   /* magic square grid */
   table.msq{border-collapse:collapse;margin:10px 0 2px;}
   table.msq td{
@@ -211,6 +224,9 @@
     .p-reveal{display:none !important;}
     /* Worksheet page stays clean — inline answers never print */
     ol.problems .p-answer{display:none !important;}
+    /* Fillable answer lines DO print, as a blank line to write on (or with typed text) */
+    .resp-label{color:#000;}
+    .answer-input{border:0;border-bottom:1px solid #333;border-radius:0;max-width:none;width:70%;padding:2px 0;}
     /* Answer key prints on its own page, only when the global toggle is on */
     body:not(.show-answers) #answerkey{display:none;}
     body.show-answers #answerkey{display:block;page-break-before:always;}
@@ -268,6 +284,7 @@
     <div class="practice-card" id="practice-card">
       <span class="p-tag" id="pr-tag"></span>
       <div class="p-q pr-q" id="pr-q"></div>
+      <div class="p-response" id="pr-response"></div>
       <div class="p-answer" id="pr-answer"></div>
     </div>
     <div class="practice-actions" id="pr-actions"></div>
@@ -1133,6 +1150,7 @@ const UI = {
   answerKey:{en:'Answer Key', fr:'Corrigé'},
   meta:{en:(n,lv,d)=>`${n} problems · ${lv} · ${d}`, fr:(n,lv,d)=>`${n} problèmes · ${lv} · ${d}`},
   aLabel:{en:'Answer', fr:'Réponse'},
+  yourAnswer:{en:'Your answer', fr:'Votre réponse'},
   revealShow:{en:'Show answer', fr:'Afficher la réponse'},
   revealHide:{en:'Hide answer', fr:'Masquer la réponse'},
   empty:{en:'Choose at least one category above, then press “New set”.', fr:'Choisissez au moins une catégorie ci-dessus, puis appuyez sur « Nouvelle série ».'},
@@ -1217,6 +1235,8 @@ function render(){
     li.innerHTML =
       `<span class="p-tag">${catName(p.cat)}</span>`+
       `<div class="p-q">${p.q[L]}</div>`+
+      `<div class="p-response"><span class="resp-label">${UI.yourAnswer[L]}</span>`+
+        `<input class="answer-input" type="text" value="${esc(p._input||'')}" oninput="saveInput(${idx},this.value)" aria-label="${UI.yourAnswer[L]}"></div>`+
       `<button class="p-reveal no-print" onclick="revealOne(this,${idx})">${p._revealed?UI.revealHide[L]:UI.revealShow[L]}</button>`+
       `<div class="p-answer"><span class="a-label">${UI.aLabel[L]}</span>${p.a[L]}</div>`;
     ol.appendChild(li);
@@ -1237,6 +1257,7 @@ function renderPractice(){
   const card = document.getElementById('practice-card');
   const tag  = document.getElementById('pr-tag');
   const q    = document.getElementById('pr-q');
+  const resp = document.getElementById('pr-response');
   const ans  = document.getElementById('pr-answer');
   const acts = document.getElementById('pr-actions');
 
@@ -1244,7 +1265,7 @@ function renderPractice(){
     prog.textContent = '';
     tag.style.display = 'none';
     q.innerHTML = `<span style="color:var(--ink-soft)">${UI.practiceEmpty[L]}</span>`;
-    ans.innerHTML = ''; acts.innerHTML = ''; card.classList.remove('revealed');
+    resp.innerHTML = ''; ans.innerHTML = ''; acts.innerHTML = ''; card.classList.remove('revealed');
     return;
   }
 
@@ -1252,6 +1273,9 @@ function renderPractice(){
   prog.textContent = UI.progress[L](state.count);
   tag.textContent = catName(state.current.cat);
   q.innerHTML = state.current.q[L];
+  resp.innerHTML = `<span class="resp-label">${UI.yourAnswer[L]}</span>`+
+    `<input id="pr-input" class="answer-input" type="text" value="${esc(state.current._input||'')}" `+
+    `oninput="savePracticeInput(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();revealCurrent();}" aria-label="${UI.yourAnswer[L]}">`;
   ans.innerHTML = `<span class="a-label">${UI.aLabel[L]}</span>${state.current.a[L]}`;
   card.classList.toggle('revealed', state.reveal);
 
@@ -1259,7 +1283,19 @@ function renderPractice(){
     ? `<button class="btn btn-primary" onclick="nextProblem()">${UI.nextBtn[L]}</button>`
     : `<button class="btn btn-primary" onclick="revealCurrent()">${UI.revealShow[L]}</button>`+
       `<button class="btn btn-ghost" onclick="skipProblem()">${UI.skipBtn[L]}</button>`;
+
+  if(state._focusInput){
+    state._focusInput = false;
+    const inp = document.getElementById('pr-input');
+    if(inp) inp.focus();
+  }
 }
+
+/* Escape a string for safe use inside an HTML attribute value */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+/* Persist what the user types so it survives re-renders */
+function saveInput(idx,val){ if(state.problems[idx]) state.problems[idx]._input = val; }
+function savePracticeInput(val){ if(state.current) state.current._input = val; }
 
 /* Draw one fresh problem from the enabled categories, avoiding an immediate repeat */
 function pickProblem(){
@@ -1287,7 +1323,7 @@ function refreshForMode(){
   else { newSet(); }
 }
 function setLevel(l){ state.level=l; refreshForMode(); }
-function nextProblem(){ state.current = pickProblem(); state.reveal=false; if(state.current) state.count++; render(); }
+function nextProblem(){ state.current = pickProblem(); state.reveal=false; state._focusInput=true; if(state.current) state.count++; render(); }
 function revealCurrent(){ state.reveal=true; render(); }
 function skipProblem(){ nextProblem(); }
 function toggleAnswers(){
