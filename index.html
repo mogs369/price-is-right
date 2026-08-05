@@ -190,6 +190,22 @@
   .answer-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
   .practice-card .answer-input{font-size:20px;}
 
+  /* ---------- Multiple choice (Gentle / Standard) ---------- */
+  .mc-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;max-width:580px;}
+  .mc-opt{
+    font-family:inherit;font-size:19px;text-align:left;padding:12px 16px;border:1px solid var(--line);
+    border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;
+  }
+  .mc-opt:hover{border-color:var(--accent);}
+  .mc-opt.selected{border-color:var(--accent);background:var(--accent-soft);font-weight:700;}
+  .mc-opt.correct{border-color:#2f7a4f;background:#e3f2e8;color:#1e5e39;font-weight:700;}
+  .mc-opt.wrong{border-color:#a33;background:#f7e4e4;color:#8a2b2b;font-weight:700;}
+  .practice-card .mc-opt{font-size:20px;}
+  @media print{
+    .mc-opt{border:1px solid #999 !important;background:#fff !important;color:#000 !important;font-weight:400 !important;}
+    .mc-options{max-width:none;}
+  }
+
   /* magic square grid */
   table.msq{border-collapse:collapse;margin:10px 0 2px;}
   table.msq td{
@@ -382,6 +398,37 @@ const DAYS = {
   fr:['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi']
 };
 
+/* ---- Multiple-choice helpers (shown at Gentle / Standard) ----
+   A problem may carry `mc = {values, correct, fmt}` where values is the
+   shuffled option list, correct is the right value, and fmt(value,lang)
+   renders an option label in the current language. */
+function distract(correct, unit, positive){
+  const cand = shuffle([correct+unit,correct-unit,correct+2*unit,correct-2*unit,correct+3*unit,correct-3*unit]);
+  const set = new Set();
+  for(const c of cand){ if(c!==correct && (!positive || c>0) && !set.has(c)){ set.add(c); if(set.size===3) break; } }
+  let k=4; while(set.size<3 && k<80){ const c=correct+k*unit; if((!positive||c>0) && c!==correct) set.add(c); k++; }
+  return [...set];
+}
+function mcNum(correct, unit, fmt, positive){
+  return {values:shuffle([correct, ...distract(correct, unit, positive!==false)]), correct, fmt};
+}
+function mcDays(correct){
+  const set=new Set([correct]); let g=0; while(set.size<4 && g++<60) set.add(rand(0,6));
+  return {values:shuffle([...set]), correct, fmt:(v,lang)=>DAYS[lang][v]};
+}
+/* Formatters for option labels */
+const F = {
+  money:(v,lang)=>money(v,lang),
+  num:(v,lang)=>grp(v,lang),
+  deg:(v)=>v+'°',
+  cm:(v)=>v+' cm',
+  cm2:(v)=>v+' cm²',
+  cm3:(v)=>v+' cm³',
+  time:(v,lang)=>fmtTime(v,lang),
+  dur:(v,lang)=>durText(v,lang),
+  xeq:(v)=>'x = '+v
+};
+
 /* ============================================================
    1. Practical money
    ============================================================ */
@@ -397,7 +444,7 @@ function genMoney(level){
     else if(level==='standard'){ price = rand(3,17) + choice([0,.25,.5,.75]); pay = price<10?10:20; }
     else { price = rand(6,38) + choice([.05,.15,.35,.45,.65,.85,.99]); pay = price<20?20:50; }
     const change = +(pay-price).toFixed(2);
-    return {cat:'money',
+    return {cat:'money', mc:mcNum(change,1,F.money),
       q:{en:`You buy a few groceries that come to ${money(price,'en')}. You hand over a ${money(pay,'en')} bill. How much change should you receive?`,
          fr:`Vous achetez quelques provisions pour un total de ${money(price,'fr')}. Vous donnez un billet de ${money(pay,'fr')}. Combien devrait-on vous rendre?`},
       a:{en:`${money(change,'en')} back.`, fr:`On devrait vous rendre ${money(change,'fr')}.`}};
@@ -410,7 +457,7 @@ function genMoney(level){
     else { P = rand(25,140); pct = choice([15,20,30,35]); }
     const save = +(P*pct/100).toFixed(2), sale = +(P-save).toFixed(2);
     const g = choice(GOODS);
-    return {cat:'money',
+    return {cat:'money', mc:mcNum(sale,Math.max(2,Math.round(P*0.1)),F.money),
       q:{en:`${g.en} is marked ${money(P,'en')} and is ${pct}% off. What is the sale price?`,
          fr:`${g.fr} est affiché à ${money(P,'fr')} avec un rabais de ${pct} %. Quel est le prix soldé?`},
       a:{en:`${pct}% of ${money(P,'en')} is ${money(save,'en')}, so the sale price is ${money(sale,'en')}.`,
@@ -434,25 +481,25 @@ function genMoney(level){
          fr:`${n1} × ${money(p1,'fr')} = ${money(n1*p1,'fr')}; ${n2} × ${money(p2,'fr')} = ${money(n2*p2,'fr')}. Total : ${money(total,'fr')}.`}
       : {en:`${n1} × ${money(p1,'en')} = ${money(total,'en')}.`,
          fr:`${n1} × ${money(p1,'fr')} = ${money(total,'fr')}.`};
-    return {cat:'money',q,a};
+    return {cat:'money', mc:mcNum(total,Math.max(1,Math.round(total*0.15)),F.money), q,a};
   }
 
   if(kind==='tip'){
     const bill = choice([24,30,36,42,45,48,55,60,72,84]);
     const pct = choice([15,18,20]);
     const tip = +(bill*pct/100).toFixed(2), total = +(bill+tip).toFixed(2);
-    return {cat:'money',
-      q:{en:`A restaurant bill comes to ${money(bill,'en')}. You want to leave a ${pct}% tip. How much is the tip, and what do you pay in total?`,
-         fr:`L’addition au restaurant s’élève à ${money(bill,'fr')}. Vous voulez laisser un pourboire de ${pct} %. Quel est le pourboire, et combien payez-vous en tout?`},
-      a:{en:`Tip = ${pct}% of ${money(bill,'en')} = ${money(tip,'en')}. Total = ${money(total,'en')}.`,
-         fr:`Pourboire = ${pct} % de ${money(bill,'fr')} = ${money(tip,'fr')}. Total = ${money(total,'fr')}.`}};
+    return {cat:'money', mc:mcNum(tip,Math.max(1,Math.round(tip*0.2)),F.money),
+      q:{en:`A restaurant bill comes to ${money(bill,'en')}. You want to leave a ${pct}% tip. How much is the tip?`,
+         fr:`L’addition au restaurant s’élève à ${money(bill,'fr')}. Vous voulez laisser un pourboire de ${pct} %. Quel est le pourboire?`},
+      a:{en:`Tip = ${pct}% of ${money(bill,'en')} = ${money(tip,'en')}. (The total to pay would be ${money(total,'en')}.)`,
+         fr:`Pourboire = ${pct} % de ${money(bill,'fr')} = ${money(tip,'fr')}. (Le total à payer serait ${money(total,'fr')}.)`}};
   }
 
   if(kind==='split'){
     const n = rand(2,5);
     const per = choice([8.5,9,10.5,11,12,14,15,16]);
     const bill = +(per*n).toFixed(2);
-    return {cat:'money',
+    return {cat:'money', mc:mcNum(per,Math.max(1,Math.round(per*0.2)),F.money),
       q:{en:`A dinner bill of ${money(bill,'en')} is shared equally among ${n} people. How much does each person pay?`,
          fr:`Une addition de ${money(bill,'fr')} est partagée également entre ${n} personnes. Combien chaque personne paie-t-elle?`},
       a:{en:`${money(bill,'en')} ÷ ${n} = ${money(per,'en')} each.`,
@@ -464,7 +511,7 @@ function genMoney(level){
     if(level==='gentle'){ price=rand(2,9)*10; pct=10; }
     else { price=choice([18,24,30,36,45,60,80]); pct=choice([5,10,13,15]); }
     const tax=+(price*pct/100).toFixed(2), total=+(price+tax).toFixed(2);
-    return {cat:'money',
+    return {cat:'money', mc:mcNum(total,Math.max(1,Math.round(total*0.08)),F.money),
       q:{en:`An item costs ${money(price,'en')} before tax. With ${pct}% sales tax added, what is the final price?`,
          fr:`Un article coûte ${money(price,'fr')} avant taxes. Avec une taxe de ${pct} %, quel est le prix final?`},
       a:{en:`Tax = ${money(tax,'en')}; final price = ${money(total,'en')}.`,
@@ -499,7 +546,7 @@ function genShortcuts(level){
 
   if(kind==='times25'){
     const m = level==='gentle'?choice([4,8,12]):level==='standard'?choice([12,16,24,20,32]):choice([16,24,28,36,44]);
-    return {cat:'shortcuts',
+    return {cat:'shortcuts', mc:mcNum(25*m, Math.max(5,Math.round(25*m*0.1)), F.num),
       q:{en:`Work out <b>25 × ${m}</b> in your head. Tip: 25 × 4 = 100, so build it up in fours.`,
          fr:`Calculez <b>25 × ${m}</b> de tête. Astuce : 25 × 4 = 100, donc procédez par groupes de quatre.`},
       a:{en:`25 × ${m} = 25 × 4 × ${m/4} = 100 × ${m/4} = <b>${grp(25*m,'en')}</b>.`,
@@ -507,7 +554,7 @@ function genShortcuts(level){
   }
   if(kind==='times99'){
     const k = level==='sharp'?rand(6,18):rand(3,9);
-    return {cat:'shortcuts',
+    return {cat:'shortcuts', mc:mcNum(99*k, Math.max(3,Math.round(99*k*0.05)), F.num),
       q:{en:`Work out <b>99 × ${k}</b> the quick way. Tip: 99 is just 100 − 1.`,
          fr:`Calculez <b>99 × ${k}</b> par un raccourci. Astuce : 99, c’est 100 − 1.`},
       a:{en:`99 × ${k} = (100 × ${k}) − ${k} = ${grp(100*k,'en')} − ${k} = <b>${grp(99*k,'en')}</b>.`,
@@ -536,7 +583,7 @@ function genShortcuts(level){
   }
   if(kind==='times5'){
     const k = level==='gentle'?rand(6,24):rand(24,88);
-    return {cat:'shortcuts',
+    return {cat:'shortcuts', mc:mcNum(5*k, Math.max(2,Math.round(5*k*0.15)), F.num),
       q:{en:`Work out <b>${k} × 5</b>. Tip: multiply by 10, then take half.`,
          fr:`Calculez <b>${k} × 5</b>. Astuce : multipliez par 10, puis prenez la moitié.`},
       a:{en:`${k} × 10 = ${10*k}; half of that is <b>${5*k}</b>.`,
@@ -544,7 +591,7 @@ function genShortcuts(level){
   }
   if(kind==='times4'){
     const k = level==='gentle'?rand(6,19):rand(14,39);
-    return {cat:'shortcuts',
+    return {cat:'shortcuts', mc:mcNum(4*k, Math.max(2,Math.round(4*k*0.15)), F.num),
       q:{en:`Work out <b>${k} × 4</b>. Tip: double it, then double again.`,
          fr:`Calculez <b>${k} × 4</b>. Astuce : doublez, puis doublez encore.`},
       a:{en:`Double ${k} is ${2*k}; double again is <b>${4*k}</b>.`,
@@ -552,7 +599,7 @@ function genShortcuts(level){
   }
   if(kind==='times50'){
     const a1 = choice([16,18,22,24,26,14]);
-    return {cat:'shortcuts',
+    return {cat:'shortcuts', mc:mcNum(50*a1, Math.max(10,Math.round(50*a1*0.1)), F.num),
       q:{en:`Work out <b>50 × ${a1}</b>. Tip: 50 is half of 100.`,
          fr:`Calculez <b>50 × ${a1}</b>. Astuce : 50, c’est la moitié de 100.`},
       a:{en:`50 × ${a1} = (100 × ${a1}) ÷ 2 = ${grp(100*a1,'en')} ÷ 2 = <b>${grp(50*a1,'en')}</b>.`,
@@ -561,7 +608,7 @@ function genShortcuts(level){
   if(kind==='times15'){
     const k = choice([12,14,16,18,22,24,26]);
     const half=k*10/2;
-    return {cat:'shortcuts',
+    return {cat:'shortcuts', mc:mcNum(15*k, Math.max(5,Math.round(15*k*0.12)), F.num),
       q:{en:`Work out <b>${k} × 15</b>. Tip: 15 is 10 + half of 10.`,
          fr:`Calculez <b>${k} × 15</b>. Astuce : 15, c’est 10 plus la moitié de 10.`},
       a:{en:`${k} × 10 = ${10*k}; half of that is ${half}; together <b>${15*k}</b>.`,
@@ -570,7 +617,7 @@ function genShortcuts(level){
   if(kind==='sq5'){
     const t = choice([25,35,45,55,65,75,85]);
     const d = (t-5)/10; const front = d*(d+1);
-    return {cat:'shortcuts',
+    return {cat:'shortcuts', mc:mcNum(t*t, Math.max(20,Math.round(t*t*0.08)), F.num),
       q:{en:`Square <b>${t}</b> (that is, ${t} × ${t}). Tip: for a number ending in 5, multiply the tens digit by the next number up, then write 25 on the end.`,
          fr:`Élevez <b>${t}</b> au carré (soit ${t} × ${t}). Astuce : pour un nombre finissant par 5, multipliez le chiffre des dizaines par le suivant, puis ajoutez 25 à la fin.`},
       a:{en:`${d} × ${d+1} = ${front}, then attach 25: <b>${grp(t*t,'en')}</b>.`,
@@ -588,7 +635,7 @@ function genShortcuts(level){
   // sum 1..n via pairs
   const n = level==='gentle'?choice([10,10,20]):level==='standard'?choice([20,50,100]):choice([50,100,60,80]);
   const res=n*(n+1)/2, pairs=n/2;
-  return {cat:'shortcuts',
+  return {cat:'shortcuts', mc:mcNum(res, Math.max(3,Math.round(res*0.15)), F.num),
     q:{en:`Add up every whole number from 1 to ${n}. Tip: pair the ends — 1 + ${n}, 2 + ${n-1}, and so on.`,
        fr:`Additionnez tous les nombres entiers de 1 à ${n}. Astuce : associez les extrémités — 1 + ${n}, 2 + ${n-1}, et ainsi de suite.`},
     a:{en:`Each pair makes ${n+1}, and there are ${pairs} pairs: ${pairs} × ${n+1} = <b>${grp(res,'en')}</b>.`,
@@ -662,9 +709,9 @@ function genPatterns(level){
   const L='en';
   const shown = seq.map(v=>grp(v,'en')).join(', ')+', ___';
   const shownFr = seq.map(v=>grp(v,'fr')).join(', ')+', ___';
-  return {cat:'patterns',
-    q:{en:`Look at this sequence: <b>${shown}</b><span class="work">What number comes next, and what is the rule?</span>`,
-       fr:`Observez cette suite : <b>${shownFr}</b><span class="work">Quel nombre vient ensuite, et quelle est la règle?</span>`},
+  return {cat:'patterns', mc:mcNum(next, Math.max(1,Math.round(next*0.15)), F.num),
+    q:{en:`Look at this sequence: <b>${shown}</b><span class="work">What number comes next? (At Sharp level, also say what the rule is.)</span>`,
+       fr:`Observez cette suite : <b>${shownFr}</b><span class="work">Quel nombre vient ensuite? (Au niveau Corsé, dites aussi quelle est la règle.)</span>`},
     a:{en:`Next is <b>${grp(next,'en')}</b> — the rule is: ${ruleEn}.`,
        fr:`Le suivant est <b>${grp(next,'fr')}</b> — la règle : ${ruleFr}.`}};
 }
@@ -684,7 +731,7 @@ function genWords(level){
     else if(level==='standard'){ startMin = rand(8,17)*60 + choice([0,15,30,45]); dur = choice([75,90,105,120,150]); }
     else { startMin = rand(7,20)*60 + choice([10,20,25,40,50]); dur = choice([95,130,145,175,200]); }
     const end = startMin+dur;
-    return {cat:'words',
+    return {cat:'words', mc:mcNum(end,15,F.time),
       q:{en:`A medical appointment starts at ${fmtTime(startMin,'en')} and lasts ${durText(dur,'en')}. At what time does it finish?`,
          fr:`Un rendez-vous médical commence à ${fmtTime(startMin,'fr')} et dure ${durText(dur,'fr')}. À quelle heure se termine-t-il?`},
       a:{en:`It finishes at <b>${fmtTime(end,'en')}</b>.`, fr:`Il se termine à <b>${fmtTime(end,'fr')}</b>.`}};
@@ -694,7 +741,7 @@ function genWords(level){
     const startMin = rand(7,13)*60 + choice([5,10,20,25,40,50]);
     const dur = level==='gentle'?choice([40,50,60,75]):choice([65,85,95,110,125]);
     const end = startMin+dur;
-    return {cat:'words',
+    return {cat:'words', mc:mcNum(dur,15,F.dur),
       q:{en:`You leave home at ${fmtTime(startMin,'en')} and arrive at ${fmtTime(end,'en')}. How long did the journey take?`,
          fr:`Vous quittez la maison à ${fmtTime(startMin,'fr')} et arrivez à ${fmtTime(end,'fr')}. Combien de temps a duré le trajet?`},
       a:{en:`<b>${durText(dur,'en')}</b>.`, fr:`<b>${durText(dur,'fr')}</b>.`}};
@@ -709,7 +756,7 @@ function genWords(level){
     if(level==='standard'){ baseServes=4; want=6; baseAmt=choice([2,3,1.5]); }
     else { baseServes=6; want=choice([4,9,15]); baseAmt=choice([3,4,2.5]); }
     const scaled = +(baseAmt*want/baseServes).toFixed(2);
-    return {cat:'words',
+    return {cat:'words', mc:mcNum(scaled,0.5,(v,lang)=>num(v,lang)+' '+(lang==='fr'?unitFr:unitEn)),
       q:{en:`A recipe for ${baseServes} people uses ${num(baseAmt,'en')} ${unitEn} of ${ingEn[0]}. How much ${ingEn[0]} do you need to serve ${want} people?`,
          fr:`Une recette pour ${baseServes} personnes utilise ${num(baseAmt,'fr')} ${unitFr} ${ingFr}. Quelle quantité de ${nameFr} faut-il pour servir ${want} personnes?`},
       a:{en:`Scale by ${want}/${baseServes}: ${num(baseAmt,'en')} × ${want} ÷ ${baseServes} = <b>${num(scaled,'en')} ${unitEn}</b>.`,
@@ -723,7 +770,8 @@ function genWords(level){
     else { L=rand(8,18); W=rand(4,13); }
     const area=L*W, per=2*(L+W);
     const askBoth = level!=='gentle';
-    return {cat:'words',
+    const gmc = askBoth ? undefined : mcNum(area, Math.max(2,Math.round(area*0.2)), v=>v+' m²');
+    return {cat:'words', mc:gmc,
       q:{en:`A rectangular vegetable garden measures ${L} m by ${W} m. What is its area${askBoth?', and how much fencing would go all the way around it':''}?`,
          fr:`Un potager rectangulaire mesure ${L} m sur ${W} m. Quelle est son aire${askBoth?', et quelle longueur de clôture en ferait tout le tour':''}?`},
       a:{en:`Area = ${L} × ${W} = <b>${area} m²</b>.${askBoth?` Perimeter = 2 × (${L} + ${W}) = <b>${per} m</b> of fencing.`:''}`,
@@ -733,13 +781,13 @@ function genWords(level){
   if(kind==='speed'){
     if(Math.random()<0.5){
       const S=choice([60,70,80,90]), t=choice([2,3,4]); const D=S*t;
-      return {cat:'words',
+      return {cat:'words', mc:mcNum(t,1,(v,lang)=>v+(lang==='fr'?' heures':' hours')),
         q:{en:`A car travels ${grp(D,'en')} km at a steady ${S} km/h. How long does the trip take?`,
            fr:`Une voiture parcourt ${grp(D,'fr')} km à une vitesse constante de ${S} km/h. Combien de temps dure le trajet?`},
         a:{en:`${grp(D,'en')} ÷ ${S} = <b>${t} hours</b>.`, fr:`${grp(D,'fr')} ÷ ${S} = <b>${t} heures</b>.`}};
     }
     const t=choice([30,40,45,90]), D=choice([2,3,4,6]); const perHr=+(D*60/t).toFixed(1);
-    return {cat:'words',
+    return {cat:'words', mc:mcNum(perHr,1,(v,lang)=>num(v,lang)+' km'),
       q:{en:`You walk ${D} km in ${t} minutes. At that pace, how far would you walk in one hour?`,
          fr:`Vous marchez ${D} km en ${t} minutes. À ce rythme, quelle distance parcourriez-vous en une heure?`},
       a:{en:`In 60 minutes: ${D} × 60 ÷ ${t} = <b>${num(perHr,'en')} km</b>.`,
@@ -749,17 +797,17 @@ function genWords(level){
   if(kind==='convert'){
     const which = choice(['ml','km','kg','min']);
     if(which==='ml'){ const cups=choice([2,3,4]); const ml=cups*250;
-      return {cat:'words',
+      return {cat:'words', mc:mcNum(cups,1,(v,lang)=>v+(lang==='fr'?' tasses':' cups')),
         q:{en:`A recipe calls for ${ml} ml of milk. About how many cups is that, if one cup is 250 ml?`,
            fr:`Une recette demande ${ml} ml de lait. Cela fait combien de tasses, si une tasse vaut 250 ml?`},
         a:{en:`${ml} ÷ 250 = <b>${cups} cups</b>.`, fr:`${ml} ÷ 250 = <b>${cups} tasses</b>.`}}; }
     if(which==='km'){ const km=choice([1.5,2.4,3.2,4.5]);
-      return {cat:'words',
+      return {cat:'words', mc:mcNum(km*1000,Math.max(100,Math.round(km*1000*0.2)),(v,lang)=>grp(v,lang)+' m'),
         q:{en:`A walking path is ${num(km,'en')} km long. How many metres is that?`,
            fr:`Un sentier fait ${num(km,'fr')} km de long. Combien de mètres cela représente-t-il?`},
         a:{en:`${num(km,'en')} × 1000 = <b>${grp(km*1000,'en')} m</b>.`, fr:`${num(km,'fr')} × 1000 = <b>${grp(km*1000,'fr')} m</b>.`}}; }
     if(which==='kg'){ const kg=choice([1.5,2.5,3.2,0.75]);
-      return {cat:'words',
+      return {cat:'words', mc:mcNum(kg*1000,Math.max(100,Math.round(kg*1000*0.2)),(v,lang)=>grp(v,lang)+' g'),
         q:{en:`A parcel weighs ${num(kg,'en')} kg. How many grams is that?`,
            fr:`Un colis pèse ${num(kg,'fr')} kg. Combien de grammes cela fait-il?`},
         a:{en:`${num(kg,'en')} × 1000 = <b>${grp(kg*1000,'en')} g</b>.`, fr:`${num(kg,'fr')} × 1000 = <b>${grp(kg*1000,'fr')} g</b>.`}}; }
@@ -769,6 +817,16 @@ function genWords(level){
          fr:`Un concert dure ${mins} minutes. Cela fait combien d’heures et de minutes?`},
       a:{en:`${mins} minutes = <b>${Math.floor(mins/60)} h ${pad2(mins%60)} min</b>.`,
          fr:`${mins} minutes = <b>${Math.floor(mins/60)} h ${pad2(mins%60)} min</b>.`}};
+  }
+
+  if(kind==='percent'){
+    let N,P; do{ N=choice([20,40,50,60,80]); P=choice([10,15,20,25,30,35,40,50]); }while((N*P)%100!==0);
+    const res=N*P/100;
+    return {cat:'words', mc:mcNum(res,Math.max(1,Math.round(res*0.25)),F.num),
+      q:{en:`In a group of ${N} people, ${P}% of them take part in an activity. How many people is that?`,
+         fr:`Dans un groupe de ${N} personnes, ${P} % d’entre elles participent à une activité. Cela représente combien de personnes?`},
+      a:{en:`${P}% of ${N} = ${N} × ${P} ÷ 100 = <b>${res}</b>.`,
+         fr:`${P} % de ${N} = ${N} × ${P} ÷ 100 = <b>${res}</b>.`}};
   }
 
   // age (ratio) — kept relationship-neutral in phrasing
@@ -917,7 +975,7 @@ function genLogic(level){
   if(kind==='handshake'){
     if(_hsIdx.length===0) _hsIdx = shuffle(HANDSHAKE.map((_,i)=>i));
     const n = HANDSHAKE[_hsIdx.pop()].n; const res=n*(n-1)/2;
-    return {cat:'logic',
+    return {cat:'logic', mc:mcNum(res, Math.max(1,Math.round(res*0.2)), F.num),
       q:{en:`${n} people meet at a gathering, and every person shakes hands once with every other person. How many handshakes take place in all?`,
          fr:`${n} personnes se rencontrent lors d’une réunion, et chacune serre la main une seule fois à chacune des autres. Combien de poignées de main ont lieu en tout?`},
       a:{en:`Each of the ${n} people shakes ${n-1} hands, which counts every handshake twice: ${n} × ${n-1} ÷ 2 = <b>${res}</b>.`,
@@ -925,7 +983,7 @@ function genLogic(level){
   }
   if(kind==='dayweek'){
     const start=rand(0,6), N=choice([10,20,30,45,50,100]); const res=(start+N)%7; const r=N%7;
-    return {cat:'logic',
+    return {cat:'logic', mc:mcDays(res),
       q:{en:`If today is ${DAYS.en[start]}, what day of the week will it be in ${N} days?`,
          fr:`Si aujourd’hui est ${DAYS.fr[start]}, quel jour de la semaine serons-nous dans ${N} jours?`},
       a:{en:`${N} ÷ 7 leaves ${r}; counting ${r} day${r===1?'':'s'} on from ${DAYS.en[start]} gives <b>${DAYS.en[res]}</b>.`,
@@ -966,7 +1024,7 @@ function genGeometry(level){
   }
   if(kind==='triArea'){
     const b=choice([4,6,8,10,12,14]), h=choice([3,5,6,7,9,11]);
-    return {cat:'geometry',
+    return {cat:'geometry', mc:mcNum(b*h/2, Math.max(2,Math.round(b*h/2*0.2)), (v,lang)=>num(v,lang)+' cm²'),
       q:{en:`A triangle has a base of ${b} cm and a height of ${h} cm. What is its area?`,
          fr:`Un triangle a une base de ${b} cm et une hauteur de ${h} cm. Quelle est son aire?`},
       a:{en:`Area = ½ × ${b} × ${h} = <b>${num(b*h/2,'en')} cm²</b>.`,
@@ -974,7 +1032,7 @@ function genGeometry(level){
   }
   if(kind==='triAngles'){
     let a1=rand(40,80), a2=rand(40,80); while(a1+a2>160){a1=rand(40,80);a2=rand(40,80);}
-    return {cat:'geometry',
+    return {cat:'geometry', mc:mcNum(180-a1-a2, 10, F.deg),
       q:{en:`Two angles of a triangle measure ${a1}° and ${a2}°. What is the third angle?`,
          fr:`Deux angles d’un triangle mesurent ${a1}° et ${a2}°. Quel est le troisième angle?`},
       a:{en:`The three angles add to 180°: 180 − ${a1} − ${a2} = <b>${180-a1-a2}°</b>.`,
@@ -982,7 +1040,7 @@ function genGeometry(level){
   }
   if(kind==='straight'){
     const one=rand(30,150);
-    return {cat:'geometry',
+    return {cat:'geometry', mc:mcNum(180-one, 10, F.deg),
       q:{en:`Two angles sit together on a straight line. One measures ${one}°. What is the other?`,
          fr:`Deux angles se trouvent ensemble sur une ligne droite. L’un mesure ${one}°. Quel est l’autre?`},
       a:{en:`Angles on a straight line add to 180°: 180 − ${one} = <b>${180-one}°</b>.`,
@@ -990,7 +1048,7 @@ function genGeometry(level){
   }
   if(kind==='complement'){
     const one=rand(20,70);
-    return {cat:'geometry',
+    return {cat:'geometry', mc:mcNum(90-one, 10, F.deg),
       q:{en:`Two angles together form a right angle. One measures ${one}°. What is the other?`,
          fr:`Deux angles forment ensemble un angle droit. L’un mesure ${one}°. Quel est l’autre?`},
       a:{en:`A right angle is 90°: 90 − ${one} = <b>${90-one}°</b>.`,
@@ -1006,7 +1064,7 @@ function genGeometry(level){
   }
   if(kind==='circleC'){
     const r=choice([3,4,5,6,7,10]); const C=+(2*3.14*r).toFixed(2);
-    return {cat:'geometry',
+    return {cat:'geometry', mc:mcNum(C, Math.max(2,Math.round(C*0.15)), (v,lang)=>num(v,lang)+' cm'),
       q:{en:`A circle has a radius of ${r} cm. What is its circumference? (Use π ≈ 3.14.)`,
          fr:`Un cercle a un rayon de ${r} cm. Quelle est sa circonférence? (Prenez π ≈ 3,14.)`},
       a:{en:`Circumference = 2 × 3.14 × ${r} = <b>${num(C,'en')} cm</b>.`,
@@ -1014,7 +1072,7 @@ function genGeometry(level){
   }
   if(kind==='circleA'){
     const r=choice([2,3,4,5,6,10]); const A=+(3.14*r*r).toFixed(2);
-    return {cat:'geometry',
+    return {cat:'geometry', mc:mcNum(A, Math.max(3,Math.round(A*0.15)), (v,lang)=>num(v,lang)+' cm²'),
       q:{en:`A circle has a radius of ${r} cm. What is its area? (Use π ≈ 3.14.)`,
          fr:`Un cercle a un rayon de ${r} cm. Quelle est son aire? (Prenez π ≈ 3,14.)`},
       a:{en:`Area = 3.14 × ${r}² = 3.14 × ${r*r} = <b>${num(A,'en')} cm²</b>.`,
@@ -1030,7 +1088,7 @@ function genGeometry(level){
   }
   // box volume
   const l=rand(2,8), w=rand(2,6), h=rand(2,5);
-  return {cat:'geometry',
+  return {cat:'geometry', mc:mcNum(l*w*h, Math.max(2,Math.round(l*w*h*0.2)), F.cm3),
     q:{en:`A rectangular box measures ${l} cm by ${w} cm by ${h} cm. What is its volume?`,
        fr:`Une boîte rectangulaire mesure ${l} cm sur ${w} cm sur ${h} cm. Quel est son volume?`},
     a:{en:`Volume = ${l} × ${w} × ${h} = <b>${l*w*h} cm³</b>.`,
@@ -1050,28 +1108,28 @@ function genAlgebra(level){
 
   if(kind==='add'){
     const x=rand(2,20), a=rand(2,20), b=x+a;
-    return {cat:'algebra',
+    return {cat:'algebra', mc:mcNum(x,2,F.xeq),
       q:{en:`Solve for x:  <b>x + ${a} = ${b}</b>`, fr:`Résolvez pour x :  <b>x + ${a} = ${b}</b>`},
       a:{en:`Subtract ${a} from both sides: x = ${b} − ${a} = <b>${x}</b>.`,
          fr:`Soustrayez ${a} des deux côtés : x = ${b} − ${a} = <b>${x}</b>.`}};
   }
   if(kind==='sub'){
     const x=rand(6,30), a=rand(2,9), b=x-a;
-    return {cat:'algebra',
+    return {cat:'algebra', mc:mcNum(x,2,F.xeq),
       q:{en:`Solve for x:  <b>x − ${a} = ${b}</b>`, fr:`Résolvez pour x :  <b>x − ${a} = ${b}</b>`},
       a:{en:`Add ${a} to both sides: x = ${b} + ${a} = <b>${x}</b>.`,
          fr:`Ajoutez ${a} aux deux côtés : x = ${b} + ${a} = <b>${x}</b>.`}};
   }
   if(kind==='mul'){
     const a=rand(2,9), x=rand(2,12), b=a*x;
-    return {cat:'algebra',
+    return {cat:'algebra', mc:mcNum(x,2,F.xeq),
       q:{en:`Solve for x:  <b>${a}x = ${b}</b>`, fr:`Résolvez pour x :  <b>${a}x = ${b}</b>`},
       a:{en:`Divide both sides by ${a}: x = ${b} ÷ ${a} = <b>${x}</b>.`,
          fr:`Divisez les deux côtés par ${a} : x = ${b} ÷ ${a} = <b>${x}</b>.`}};
   }
   if(kind==='twostep'){
     const a=rand(2,6), x=rand(2,10), b=rand(1,12), c=a*x+b;
-    return {cat:'algebra',
+    return {cat:'algebra', mc:mcNum(x,2,F.xeq),
       q:{en:`Solve for x:  <b>${a}x + ${b} = ${c}</b>`, fr:`Résolvez pour x :  <b>${a}x + ${b} = ${c}</b>`},
       a:{en:`Subtract ${b}: ${a}x = ${c-b}. Divide by ${a}: x = <b>${x}</b>.`,
          fr:`Soustrayez ${b} : ${a}x = ${c-b}. Divisez par ${a} : x = <b>${x}</b>.`}};
@@ -1085,7 +1143,7 @@ function genAlgebra(level){
   }
   if(kind==='subst'){
     const v=rand(2,9), a=rand(2,6), b=rand(1,12);
-    return {cat:'algebra',
+    return {cat:'algebra', mc:mcNum(a*v+b, Math.max(2,Math.round((a*v+b)*0.15)), F.num),
       q:{en:`If x = ${v}, what is the value of  <b>${a}x + ${b}</b>?`, fr:`Si x = ${v}, quelle est la valeur de  <b>${a}x + ${b}</b>?`},
       a:{en:`${a} × ${v} + ${b} = ${a*v} + ${b} = <b>${a*v+b}</b>.`,
          fr:`${a} × ${v} + ${b} = ${a*v} + ${b} = <b>${a*v+b}</b>.`}};
@@ -1093,7 +1151,7 @@ function genAlgebra(level){
   if(kind==='nth'){
     const s=rand(1,6), d=rand(2,6), n=choice([8,10,12,20]);
     const seq=[s,s+d,s+2*d,s+3*d].join(', '); const val=s+(n-1)*d;
-    return {cat:'algebra',
+    return {cat:'algebra', mc:mcNum(val, Math.max(2,Math.round(val*0.12)), F.num),
       q:{en:`A sequence begins ${seq}, … and goes up by ${d} each time. Using the rule “first term + (position − 1) × step”, what is the ${n}th term?`,
          fr:`Une suite commence par ${seq}, … et augmente de ${d} à chaque fois. Avec la règle « premier terme + (position − 1) × pas », quel est le ${n}e terme?`},
       a:{en:`${s} + (${n} − 1) × ${d} = ${s} + ${(n-1)*d} = <b>${val}</b>.`,
@@ -1109,7 +1167,7 @@ function genAlgebra(level){
   }
   // word → equation
   const x=rand(2,12), a=rand(2,6), b=rand(1,15), c=a*x+b;
-  return {cat:'algebra',
+  return {cat:'algebra', mc:mcNum(x,2,F.num),
     q:{en:`I think of a number, multiply it by ${a}, then add ${b}, and the result is ${c}. What number did I start with?`,
        fr:`Je pense à un nombre, je le multiplie par ${a}, puis j’ajoute ${b}, et le résultat est ${c}. Quel nombre ai-je choisi au départ?`},
     a:{en:`Work backwards: (${c} − ${b}) ÷ ${a} = ${c-b} ÷ ${a} = <b>${x}</b>.`,
@@ -1159,6 +1217,7 @@ const UI = {
   meta:{en:(n,lv,d)=>`${n} problems · ${lv} · ${d}`, fr:(n,lv,d)=>`${n} problèmes · ${lv} · ${d}`},
   aLabel:{en:'Answer', fr:'Réponse'},
   yourAnswer:{en:'Your answer', fr:'Votre réponse'},
+  chooseAnswer:{en:'Choose the answer', fr:'Choisissez la réponse'},
   revealShow:{en:'Show answer', fr:'Afficher la réponse'},
   revealHide:{en:'Hide answer', fr:'Masquer la réponse'},
   empty:{en:'Choose at least one category above, then press “New set”.', fr:'Choisissez au moins une catégorie ci-dessus, puis appuyez sur « Nouvelle série ».'},
@@ -1240,11 +1299,17 @@ function render(){
     const li=document.createElement('li');
     const revealed = p._revealed ? ' revealed' : '';
     if(p._revealed) li.classList.add('revealed');
-    const responseHTML = p.grid
-      ? `<div class="p-response"><span class="resp-label">${UI.yourAnswer[L]}</span>`+
-          gridHTML(p, key=>`oninput="saveGridCell(${idx},'${key}',this.value)"`)+`</div>`
-      : `<div class="p-response"><span class="resp-label">${UI.yourAnswer[L]}</span>`+
-          `<input class="answer-input" type="text" value="${esc(p._input||'')}" oninput="saveInput(${idx},this.value)" aria-label="${UI.yourAnswer[L]}"></div>`;
+    let responseHTML;
+    if(p.grid){
+      responseHTML = `<div class="p-response"><span class="resp-label">${UI.yourAnswer[L]}</span>`+
+        gridHTML(p, key=>`oninput="saveGridCell(${idx},'${key}',this.value)"`)+`</div>`;
+    } else if(useMC(p)){
+      responseHTML = `<div class="p-response"><span class="resp-label">${UI.chooseAnswer[L]}</span>`+
+        mcHTML(p, p._revealed, i=>`onclick="chooseWS(${idx},${i})"`)+`</div>`;
+    } else {
+      responseHTML = `<div class="p-response"><span class="resp-label">${UI.yourAnswer[L]}</span>`+
+        `<input class="answer-input" type="text" value="${esc(p._input||'')}" oninput="saveInput(${idx},this.value)" aria-label="${UI.yourAnswer[L]}"></div>`;
+    }
     li.innerHTML =
       `<span class="p-tag">${catName(p.cat)}</span>`+
       `<div class="p-q">${p.q[L]}</div>`+
@@ -1285,12 +1350,17 @@ function renderPractice(){
   prog.textContent = UI.progress[L](state.count);
   tag.textContent = catName(state.current.cat);
   q.innerHTML = state.current.q[L];
-  resp.innerHTML = state.current.grid
-    ? `<span class="resp-label">${UI.yourAnswer[L]}</span>`+
-        gridHTML(state.current, key=>`oninput="savePracticeCell('${key}',this.value)"`)
-    : `<span class="resp-label">${UI.yourAnswer[L]}</span>`+
-        `<input id="pr-input" class="answer-input" type="text" value="${esc(state.current._input||'')}" `+
-        `oninput="savePracticeInput(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();revealCurrent();}" aria-label="${UI.yourAnswer[L]}">`;
+  if(state.current.grid){
+    resp.innerHTML = `<span class="resp-label">${UI.yourAnswer[L]}</span>`+
+      gridHTML(state.current, key=>`oninput="savePracticeCell('${key}',this.value)"`);
+  } else if(useMC(state.current)){
+    resp.innerHTML = `<span class="resp-label">${UI.chooseAnswer[L]}</span>`+
+      mcHTML(state.current, state.reveal, i=>`onclick="choosePractice(${i})"`);
+  } else {
+    resp.innerHTML = `<span class="resp-label">${UI.yourAnswer[L]}</span>`+
+      `<input id="pr-input" class="answer-input" type="text" value="${esc(state.current._input||'')}" `+
+      `oninput="savePracticeInput(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();revealCurrent();}" aria-label="${UI.yourAnswer[L]}">`;
+  }
   ans.innerHTML = `<span class="a-label">${UI.aLabel[L]}</span>${state.current.a[L]}`;
   card.classList.toggle('revealed', state.reveal);
 
@@ -1329,6 +1399,27 @@ function gridHTML(p, onin){
 }
 function saveGridCell(idx,key,val){ const p=state.problems[idx]; if(!p) return; (p._grid||(p._grid={}))[key]=val.replace(/[^1-9]/g,''); }
 function savePracticeCell(key,val){ const p=state.current; if(!p) return; (p._grid||(p._grid={}))[key]=val.replace(/[^1-9]/g,''); }
+
+/* Multiple-choice option buttons. `onclick` builds the handler for option i.
+   Once the answer is revealed, the correct option turns green and a wrong pick red. */
+function mcHTML(p, revealed, onclick){
+  const L = state.lang;
+  const opts = p.mc.values.map((v,i)=>{
+    const label = p.mc.fmt(v, L);
+    let cls = 'mc-opt';
+    if(p._choice===v) cls += ' selected';
+    if(revealed){
+      if(v===p.mc.correct) cls = 'mc-opt correct';
+      else if(p._choice===v) cls = 'mc-opt wrong';
+    }
+    return `<button class="${cls}" ${onclick(i)}>${label}</button>`;
+  }).join('');
+  return `<div class="mc-options">${opts}</div>`;
+}
+/* Should this problem show multiple choice? (Gentle/Standard, and it has options) */
+function useMC(p){ return state.level!=='sharp' && p.mc && !p.grid; }
+function chooseWS(idx,i){ const p=state.problems[idx]; if(p&&p.mc){ p._choice=p.mc.values[i]; render(); } }
+function choosePractice(i){ const p=state.current; if(p&&p.mc){ p._choice=p.mc.values[i]; render(); } }
 
 /* Draw one fresh problem from the enabled categories, avoiding an immediate repeat */
 function pickProblem(){
