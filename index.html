@@ -152,6 +152,31 @@
   body.show-answers ol.problems .p-answer{display:block;}
   body.show-answers .p-reveal{display:none;}
 
+  /* ---------- Practice mode (one problem at a time) ---------- */
+  #practice{display:none;}
+  #worksheet-view{display:none;}
+  body.mode-practice #practice{display:block;}
+  body.mode-worksheet #worksheet-view{display:block;}
+  body.mode-practice #ws-actions{display:none;}
+
+  .practice-progress{
+    font-family:Arial,Helvetica,sans-serif;font-size:14px;letter-spacing:.8px;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:700;margin:2px 0 12px;
+  }
+  .practice-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:30px 32px;min-height:150px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
+  }
+  .practice-card > *{max-width:100%;}
+  .practice-card .pr-q,.practice-card #pr-answer{width:100%;}
+  .practice-card .pr-q{font-size:24px;line-height:1.55;}
+  .practice-card .pr-q .work{font-size:19px;}
+  .practice-card #pr-answer{display:none;font-size:20px;margin-top:18px;}
+  .practice-card.revealed #pr-answer{display:block;}
+  .practice-card table.msq td{width:58px;height:58px;font-size:24px;}
+  .practice-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px;}
+  .practice-actions .btn{font-size:17px;padding:13px 26px;}
+
   /* magic square grid */
   table.msq{border-collapse:collapse;margin:10px 0 2px;}
   table.msq td{
@@ -209,6 +234,14 @@
 
   <section class="controls no-print" aria-label="Options">
     <div class="row">
+      <span class="label" id="ui-mode-label">Mode</span>
+      <div class="segmented" id="modes" role="group">
+        <button data-mode="practice" class="active" onclick="setMode('practice')">Practice</button>
+        <button data-mode="worksheet" onclick="setMode('worksheet')">Worksheet</button>
+      </div>
+    </div>
+
+    <div class="row">
       <span class="label" id="ui-level-label">Difficulty</span>
       <div class="segmented" id="levels" role="group">
         <button data-level="gentle" onclick="setLevel('gentle')">Gentle</button>
@@ -222,24 +255,38 @@
       <div class="cats" id="cats"></div>
     </div>
 
-    <div class="row actions">
+    <div class="row actions" id="ws-actions">
       <button class="btn btn-primary" id="ui-new" onclick="newSet()">New set</button>
       <button class="btn btn-ghost" id="ui-toggle" onclick="toggleAnswers()">Show all answers</button>
       <button class="btn btn-ghost" id="ui-print" onclick="window.print()">Print</button>
     </div>
   </section>
 
-  <div class="sheet-head">
-    <h2 id="ui-sheet-title">Practice Set</h2>
-    <div class="sheet-meta" id="ui-sheet-meta"></div>
-  </div>
-
-  <ol class="problems" id="problems"></ol>
-
-  <section id="answerkey" aria-label="Answer key">
-    <h2 id="ui-answerkey-title">Answer Key</h2>
-    <ol id="answerkey-list"></ol>
+  <!-- Practice mode: one problem at a time -->
+  <section id="practice" class="no-print" aria-label="Practice">
+    <div class="practice-progress" id="practice-progress"></div>
+    <div class="practice-card" id="practice-card">
+      <span class="p-tag" id="pr-tag"></span>
+      <div class="p-q pr-q" id="pr-q"></div>
+      <div class="p-answer" id="pr-answer"></div>
+    </div>
+    <div class="practice-actions" id="pr-actions"></div>
   </section>
+
+  <!-- Worksheet mode: printable list -->
+  <div id="worksheet-view">
+    <div class="sheet-head">
+      <h2 id="ui-sheet-title">Practice Set</h2>
+      <div class="sheet-meta" id="ui-sheet-meta"></div>
+    </div>
+
+    <ol class="problems" id="problems"></ol>
+
+    <section id="answerkey" aria-label="Answer key">
+      <h2 id="ui-answerkey-title">Answer Key</h2>
+      <ol id="answerkey-list"></ol>
+    </section>
+  </div>
 
   <footer class="foot no-print" id="ui-foot"></footer>
 </div>
@@ -255,7 +302,11 @@ const state = {
   level:'standard',
   cats:{money:true,shortcuts:true,patterns:true,words:true,geometry:true,algebra:true,estimation:true,logic:true},
   showAnswers:false,
-  problems:[]
+  problems:[],
+  mode:'practice',   // 'practice' (one at a time) or 'worksheet' (printable list)
+  current:null,      // the single problem shown in practice mode
+  reveal:false,      // is the current practice answer showing?
+  count:0            // how many practice problems have been shown
 };
 
 const rand = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
@@ -1065,9 +1116,15 @@ const CATEGORIES = [
 const UI = {
   title:{en:'Numbers &amp; Reasoning', fr:'Nombres et raisonnement'},
   subtitle:{en:'A practice set for keeping the mind active', fr:'Une série d’exercices pour garder l’esprit actif'},
+  modeLabel:{en:'Mode', fr:'Mode'},
+  modes:{practice:{en:'Practice',fr:'Exercice'}, worksheet:{en:'Worksheet',fr:'Feuille'}},
   levelLabel:{en:'Difficulty', fr:'Niveau'},
   catsLabel:{en:'Categories', fr:'Catégories'},
   levels:{gentle:{en:'Gentle',fr:'Doux'}, standard:{en:'Standard',fr:'Standard'}, sharp:{en:'Sharp',fr:'Corsé'}},
+  progress:{en:n=>`Problem ${n}`, fr:n=>`Problème ${n}`},
+  nextBtn:{en:'Next problem →', fr:'Problème suivant →'},
+  skipBtn:{en:'Skip', fr:'Passer'},
+  practiceEmpty:{en:'Turn on at least one category above to begin practising.', fr:'Activez au moins une catégorie ci-dessus pour commencer à vous exercer.'},
   newBtn:{en:'New set', fr:'Nouvelle série'},
   showBtn:{en:'Show all answers', fr:'Afficher toutes les réponses'},
   hideBtn:{en:'Hide all answers', fr:'Masquer toutes les réponses'},
@@ -1079,8 +1136,8 @@ const UI = {
   revealShow:{en:'Show answer', fr:'Afficher la réponse'},
   revealHide:{en:'Hide answer', fr:'Masquer la réponse'},
   empty:{en:'Choose at least one category above, then press “New set”.', fr:'Choisissez au moins une catégorie ci-dessus, puis appuyez sur « Nouvelle série ».'},
-  foot:{en:'Made for calm, unhurried practice. Reveal each answer with its button, or show them all at once.',
-        fr:'Conçu pour une pratique calme et sans hâte. Dévoilez chaque réponse avec son bouton, ou affichez-les toutes d’un coup.'},
+  foot:{en:'Practice mode gives one question at a time — think it through, reveal the answer, then move on. Switch to Worksheet mode to print a set.',
+        fr:'Le mode Exercice présente une question à la fois — réfléchissez, dévoilez la réponse, puis continuez. Passez au mode Feuille pour imprimer une série.'},
   dateFmt:{en:d=>d.toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'}),
            fr:d=>d.toLocaleDateString('fr-CA',{year:'numeric',month:'long',day:'numeric'})}
 };
@@ -1118,6 +1175,7 @@ function render(){
   document.documentElement.lang = L;
   document.getElementById('ui-title').innerHTML = UI.title[L];
   document.getElementById('ui-subtitle').textContent = UI.subtitle[L];
+  document.getElementById('ui-mode-label').textContent = UI.modeLabel[L];
   document.getElementById('ui-level-label').textContent = UI.levelLabel[L];
   document.getElementById('ui-cats-label').textContent = UI.catsLabel[L];
   document.getElementById('ui-new').textContent = UI.newBtn[L];
@@ -1127,11 +1185,16 @@ function render(){
   document.getElementById('ui-answerkey-title').textContent = UI.answerKey[L];
   document.getElementById('ui-foot').textContent = UI.foot[L];
 
+  document.querySelectorAll('#modes button').forEach(b=>{
+    const md=b.dataset.mode; b.textContent = UI.modes[md][L]; b.classList.toggle('active', md===state.mode);
+  });
   document.querySelectorAll('#levels button').forEach(b=>{
     const lv=b.dataset.level; b.textContent = UI.levels[lv][L]; b.classList.toggle('active', lv===state.level);
   });
   document.getElementById('lang-en').classList.toggle('active', L==='en');
   document.getElementById('lang-fr').classList.toggle('active', L==='fr');
+
+  renderPractice();
 
   const dateStr = UI.dateFmt[L](new Date());
   document.getElementById('ui-sheet-meta').textContent =
@@ -1167,11 +1230,66 @@ function render(){
   refreshCatLabels();
 }
 
+/* Practice mode: render the single current problem */
+function renderPractice(){
+  const L = state.lang;
+  const prog = document.getElementById('practice-progress');
+  const card = document.getElementById('practice-card');
+  const tag  = document.getElementById('pr-tag');
+  const q    = document.getElementById('pr-q');
+  const ans  = document.getElementById('pr-answer');
+  const acts = document.getElementById('pr-actions');
+
+  if(!state.current){
+    prog.textContent = '';
+    tag.style.display = 'none';
+    q.innerHTML = `<span style="color:var(--ink-soft)">${UI.practiceEmpty[L]}</span>`;
+    ans.innerHTML = ''; acts.innerHTML = ''; card.classList.remove('revealed');
+    return;
+  }
+
+  tag.style.display = '';
+  prog.textContent = UI.progress[L](state.count);
+  tag.textContent = catName(state.current.cat);
+  q.innerHTML = state.current.q[L];
+  ans.innerHTML = `<span class="a-label">${UI.aLabel[L]}</span>${state.current.a[L]}`;
+  card.classList.toggle('revealed', state.reveal);
+
+  acts.innerHTML = state.reveal
+    ? `<button class="btn btn-primary" onclick="nextProblem()">${UI.nextBtn[L]}</button>`
+    : `<button class="btn btn-primary" onclick="revealCurrent()">${UI.revealShow[L]}</button>`+
+      `<button class="btn btn-ghost" onclick="skipProblem()">${UI.skipBtn[L]}</button>`;
+}
+
+/* Draw one fresh problem from the enabled categories, avoiding an immediate repeat */
+function pickProblem(){
+  const enabled = CATEGORIES.filter(c=>state.cats[c.id]);
+  if(enabled.length===0) return null;
+  const prevKey = state.current ? state.current.q.en.replace(/<[^>]+>/g,'') : null;
+  let p, guard=0;
+  do{ p = choice(enabled).gen(state.level); guard++; }
+  while(prevKey && p.q.en.replace(/<[^>]+>/g,'')===prevKey && guard<40);
+  return p;
+}
+
 /* ============================================================
    Controls
    ============================================================ */
 function setLang(l){ state.lang=l; render(); }
-function setLevel(l){ state.level=l; newSet(); }
+function setMode(m){
+  state.mode = m;
+  document.body.classList.toggle('mode-practice', m==='practice');
+  document.body.classList.toggle('mode-worksheet', m==='worksheet');
+  if(m==='practice' && !state.current) nextProblem(); else render();
+}
+function refreshForMode(){
+  if(state.mode==='practice'){ state.current = pickProblem(); state.reveal=false; render(); }
+  else { newSet(); }
+}
+function setLevel(l){ state.level=l; refreshForMode(); }
+function nextProblem(){ state.current = pickProblem(); state.reveal=false; if(state.current) state.count++; render(); }
+function revealCurrent(){ state.reveal=true; render(); }
+function skipProblem(){ nextProblem(); }
 function toggleAnswers(){
   state.showAnswers=!state.showAnswers;
   document.body.classList.toggle('show-answers', state.showAnswers);
@@ -1195,7 +1313,7 @@ function buildCats(){
       `<input type="checkbox" ${state.cats[c.id]?'checked':''}>`+
       `<span><span class="cat-name" data-name="${c.id}"></span><br><span class="cat-desc" data-desc="${c.id}"></span></span>`;
     const cb=lab.querySelector('input');
-    cb.addEventListener('change',()=>{ state.cats[c.id]=cb.checked; lab.classList.toggle('on',cb.checked); newSet(); });
+    cb.addEventListener('change',()=>{ state.cats[c.id]=cb.checked; lab.classList.toggle('on',cb.checked); refreshForMode(); });
     box.appendChild(lab);
   });
   refreshCatLabels();
@@ -1211,7 +1329,9 @@ function refreshCatLabels(){
    Init
    ============================================================ */
 buildCats();
-newSet();
+document.body.classList.add('mode-practice');   // Practice is the default, friendlier view
+newSet();          // prepare a worksheet too, so switching modes is instant
+nextProblem();     // draw the first practice problem and render everything
 </script>
 </body>
 </html>
