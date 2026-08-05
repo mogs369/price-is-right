@@ -197,6 +197,14 @@
     font-size:22px;font-family:Arial,Helvetica,sans-serif;font-weight:700;
   }
   table.msq td.blank{background:#f4f1ea;color:var(--accent);}
+  table.msq td.cell-input{padding:0;}
+  .msq-input{
+    width:100%;height:50px;border:0;background:transparent;text-align:center;
+    font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;color:var(--accent);padding:0;
+  }
+  .msq-input:focus{outline:none;background:var(--accent-soft);}
+  .practice-card .msq-input{height:56px;font-size:24px;}
+  @media print{ .msq-input{color:#000;} table.msq td.blank{background:#fff;} }
 
   #answerkey{margin-top:34px;padding-top:22px;border-top:2px solid var(--line);}
   #answerkey h2{font-size:22px;margin:0 0 12px;}
@@ -901,9 +909,9 @@ function genLogic(level){
     const m = MAGIC[_magicIdx.pop()];
     const grid = m.sol.map(r=>r.slice());
     m.blanks.forEach(([r,c])=>{grid[r][c]=null;});
-    return {cat:'logic',
-      q:{en:`Fill in the missing numbers so that each row, each column, and both diagonals add up to 15. Use the digits 1–9, each exactly once.`+msqTable(grid),
-         fr:`Complétez les cases manquantes pour que chaque ligne, chaque colonne et les deux diagonales totalisent 15. Utilisez les chiffres de 1 à 9, chacun une seule fois.`+msqTable(grid)},
+    return {cat:'logic', grid:{puzzle:grid, solution:m.sol},
+      q:{en:`Fill in the missing numbers so that each row, each column, and both diagonals add up to 15. Use the digits 1–9, each exactly once.`,
+         fr:`Complétez les cases manquantes pour que chaque ligne, chaque colonne et les deux diagonales totalisent 15. Utilisez les chiffres de 1 à 9, chacun une seule fois.`},
       a:{en:`The completed square:`+msqTable(m.sol), fr:`Le carré complété :`+msqTable(m.sol)}};
   }
   if(kind==='handshake'){
@@ -1232,11 +1240,15 @@ function render(){
     const li=document.createElement('li');
     const revealed = p._revealed ? ' revealed' : '';
     if(p._revealed) li.classList.add('revealed');
+    const responseHTML = p.grid
+      ? `<div class="p-response"><span class="resp-label">${UI.yourAnswer[L]}</span>`+
+          gridHTML(p, key=>`oninput="saveGridCell(${idx},'${key}',this.value)"`)+`</div>`
+      : `<div class="p-response"><span class="resp-label">${UI.yourAnswer[L]}</span>`+
+          `<input class="answer-input" type="text" value="${esc(p._input||'')}" oninput="saveInput(${idx},this.value)" aria-label="${UI.yourAnswer[L]}"></div>`;
     li.innerHTML =
       `<span class="p-tag">${catName(p.cat)}</span>`+
       `<div class="p-q">${p.q[L]}</div>`+
-      `<div class="p-response"><span class="resp-label">${UI.yourAnswer[L]}</span>`+
-        `<input class="answer-input" type="text" value="${esc(p._input||'')}" oninput="saveInput(${idx},this.value)" aria-label="${UI.yourAnswer[L]}"></div>`+
+      responseHTML+
       `<button class="p-reveal no-print" onclick="revealOne(this,${idx})">${p._revealed?UI.revealHide[L]:UI.revealShow[L]}</button>`+
       `<div class="p-answer"><span class="a-label">${UI.aLabel[L]}</span>${p.a[L]}</div>`;
     ol.appendChild(li);
@@ -1273,9 +1285,12 @@ function renderPractice(){
   prog.textContent = UI.progress[L](state.count);
   tag.textContent = catName(state.current.cat);
   q.innerHTML = state.current.q[L];
-  resp.innerHTML = `<span class="resp-label">${UI.yourAnswer[L]}</span>`+
-    `<input id="pr-input" class="answer-input" type="text" value="${esc(state.current._input||'')}" `+
-    `oninput="savePracticeInput(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();revealCurrent();}" aria-label="${UI.yourAnswer[L]}">`;
+  resp.innerHTML = state.current.grid
+    ? `<span class="resp-label">${UI.yourAnswer[L]}</span>`+
+        gridHTML(state.current, key=>`oninput="savePracticeCell('${key}',this.value)"`)
+    : `<span class="resp-label">${UI.yourAnswer[L]}</span>`+
+        `<input id="pr-input" class="answer-input" type="text" value="${esc(state.current._input||'')}" `+
+        `oninput="savePracticeInput(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();revealCurrent();}" aria-label="${UI.yourAnswer[L]}">`;
   ans.innerHTML = `<span class="a-label">${UI.aLabel[L]}</span>${state.current.a[L]}`;
   card.classList.toggle('revealed', state.reveal);
 
@@ -1296,6 +1311,24 @@ function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').r
 /* Persist what the user types so it survives re-renders */
 function saveInput(idx,val){ if(state.problems[idx]) state.problems[idx]._input = val; }
 function savePracticeInput(val){ if(state.current) state.current._input = val; }
+
+/* Editable grid (e.g. magic square): render blank cells as inputs, given cells fixed.
+   `onin` builds the oninput attribute for a cell key so the right problem is updated. */
+function gridHTML(p, onin){
+  const puz = p.grid.puzzle, vals = p._grid || {};
+  let h = '<table class="msq"><tbody>';
+  for(let r=0;r<3;r++){ h+='<tr>';
+    for(let c=0;c<3;c++){ const v=puz[r][c];
+      if(v==null){ const key=r+'_'+c;
+        h+=`<td class="blank cell-input"><input class="msq-input" inputmode="numeric" maxlength="1" value="${esc(vals[key]||'')}" ${onin(key)} aria-label="row ${r+1} column ${c+1}"></td>`;
+      } else h+=`<td>${v}</td>`;
+    }
+    h+='</tr>';
+  }
+  return h+'</tbody></table>';
+}
+function saveGridCell(idx,key,val){ const p=state.problems[idx]; if(!p) return; (p._grid||(p._grid={}))[key]=val.replace(/[^1-9]/g,''); }
+function savePracticeCell(key,val){ const p=state.current; if(!p) return; (p._grid||(p._grid={}))[key]=val.replace(/[^1-9]/g,''); }
 
 /* Draw one fresh problem from the enabled categories, avoiding an immediate repeat */
 function pickProblem(){
